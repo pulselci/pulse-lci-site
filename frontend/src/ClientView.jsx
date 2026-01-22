@@ -2,15 +2,20 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "./api/client";
 
 async function checkBackend() {
-  // If this fails, we’ll know immediately if it’s “backend down” vs “CORS” vs “wrong URL”
+  // Use the shared api client so BASE_URL + error formatting is consistent everywhere
   try {
-    const res = await fetch("http://127.0.0.1:8000/health", {
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
-    const text = await res.text();
-    return { ok: res.ok, status: res.status, body: text };
+    await api.health();
+
+    // Optional: also check DB health if you want a stronger "backend is fully up" signal
+    try {
+      await api.healthDb();
+      return { ok: true, status: 200, body: "health ok; db ok" };
+    } catch (e) {
+      // Backend is up but DB health failed — still useful to show
+      return { ok: true, status: 200, body: `health ok; db check failed: ${String(e?.message || e)}` };
+    }
   } catch (e) {
+    // api client throws a helpful string that includes method + URL + status when possible
     return { ok: false, status: 0, body: String(e?.message || e) };
   }
 }
@@ -121,6 +126,7 @@ export default function ClientView() {
           alignItems: "center",
           marginBottom: 10,
           fontSize: 12,
+          flexWrap: "wrap",
         }}
       >
         <div style={{ opacity: 0.7 }}>Backend health:</div>
@@ -134,7 +140,7 @@ export default function ClientView() {
                 border: "1px solid #cfe9d6",
               }}
             >
-              ✅ OK (HTTP {backendCheck.status})
+              ✅ OK {backendCheck.status ? `(HTTP ${backendCheck.status})` : ""}
             </div>
           ) : (
             <div
@@ -159,8 +165,8 @@ export default function ClientView() {
           </div>
         )}
 
-        {backendCheck && !backendCheck.ok ? (
-          <div style={{ color: "crimson", whiteSpace: "pre-wrap" }}>
+        {backendCheck && backendCheck.body ? (
+          <div style={{ opacity: backendCheck.ok ? 0.7 : 1, color: backendCheck.ok ? "#333" : "crimson", whiteSpace: "pre-wrap" }}>
             {backendCheck.body}
           </div>
         ) : null}
