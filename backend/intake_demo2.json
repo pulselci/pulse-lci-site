@@ -1,0 +1,18 @@
+﻿{
+  "business_name": "Demo Coffee Co",
+  "primary_domain": "democoffee.com",
+  "city": "Covington",
+  "state": "KY",
+  "country": "US",
+  "notes": "Second demo business for frontend clicking.",
+  "competitors": [
+    {
+      "name": "Bean Bros",
+      "website_url": "https://www.starbucks.com"
+    },
+    {
+      "name": "Roast House",
+      "website_url": "https://www.dunkindonuts.com"
+    }
+  ]
+}

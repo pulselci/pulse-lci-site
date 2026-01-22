@@ -1,0 +1,16 @@
+{
+  "snapshots": [
+    {
+      "business_id": "66a96c42-42ee-449e-901a-b0b71201399e",
+      "competitor_id": "bc998f21-fda3-407f-8e02-7aa89cfedbfd",
+      "source": "google_reviews",
+      "data": { "review_count": 120, "rating": 4.6 }
+    },
+    {
+      "business_id": "66a96c42-42ee-449e-901a-b0b71201399e",
+      "competitor_id": "f945dadc-2fa3-402a-8779-58b446a1f8f4",
+      "source": "website_offer",
+      "data": { "headline": "10% off first service", "price_hint": "$99" }
+    }
+  ]
+}
