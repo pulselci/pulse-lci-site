@@ -51,6 +51,20 @@ export const api = {
   health: () => request("/health"),
   healthDb: () => request("/health/db"),
 
+  // raw health check for UI diagnostics (returns body text too)
+  healthRaw: async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/health`, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+      });
+      const text = await res.text();
+      return { ok: res.ok, status: res.status, body: text };
+    } catch (e) {
+      return { ok: false, status: 0, body: String(e?.message || e) };
+    }
+  },
+
   // Businesses
   businesses: () => request("/businesses"),
   business: (id) => request(`/business/${id}`),
