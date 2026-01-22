@@ -1,0 +1,33 @@
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ---- env / secrets ----
+.env
+**/.env
+.env.*
+!.env.example
+
+# ---- python ----
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+**/.venv/
+.pytest_cache/
+.mypy_cache/
+
+# ---- node ----
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.vite/
+**/.vite/
+
+# ---- logs ----
+*.log
