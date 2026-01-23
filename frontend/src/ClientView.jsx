@@ -1,28 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "./api/client";
 
-// Uses the same BASE_URL behavior as api client.js (env-aware).
-async function checkBackend() {
-  try {
-    const res = await api.healthRaw?.() ?? fetch("http://127.0.0.1:8000/health", {
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
-    // If api.healthRaw exists, it returns { ok, status, body }. Otherwise we used fetch Response.
-    if (res?.ok !== undefined && res?.status !== undefined && res?.body !== undefined) return res;
-
-    const text = await res.text();
-    return { ok: res.ok, status: res.status, body: text };
-  } catch (e) {
-    return { ok: false, status: 0, body: String(e?.message || e) };
-  }
-}
-
 function pillStyle(ok) {
   return {
     padding: "2px 8px",
     borderRadius: 999,
     border: ok ? "1px solid #cfe9d6" : "1px solid #f3c2c2",
+    background: "#fff",
+  };
+}
+
+function cardStyle(borderColor = "#ddd") {
+  return {
+    border: `1px solid ${borderColor}`,
+    borderRadius: 10,
+    padding: 12,
     background: "#fff",
   };
 }
@@ -41,6 +33,13 @@ export default function ClientView() {
 
   const [backendCheck, setBackendCheck] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function runBackendCheck() {
+    const hc = await api.healthRaw();
+    setBackendCheck(hc);
+    return hc;
+  }
 
   // Boot: check backend + load businesses once
   useEffect(() => {
@@ -50,7 +49,7 @@ export default function ClientView() {
       setLoading(true);
       setErr("");
 
-      const hc = await checkBackend();
+      const hc = await api.healthRaw();
       if (!mounted) return;
       setBackendCheck(hc);
 
@@ -61,7 +60,7 @@ export default function ClientView() {
         const safeList = list || [];
         setBusinesses(safeList);
 
-        // ✅ Client scope: always pick the first business (Phase C)
+        // ✅ Client scope (Phase C/D): always pick the first business
         if (safeList.length) setSelectedId(safeList[0].id);
         else setSelectedId("");
       } catch (e) {
@@ -82,6 +81,8 @@ export default function ClientView() {
   async function refresh() {
     if (!selectedId) return;
     setErr("");
+    setRefreshing(true);
+
     try {
       const [d, i] = await Promise.all([
         api.snapshotDeltas(selectedId, days),
@@ -94,6 +95,8 @@ export default function ClientView() {
       setErr(String(e?.message || e));
       setDeltas([]);
       setInsights(null);
+    } finally {
+      setRefreshing(false);
     }
   }
 
@@ -103,7 +106,7 @@ export default function ClientView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, days]);
 
-  // Optional: auto-refresh every 5 minutes (client-friendly)
+  // Auto-refresh every 5 minutes (client-friendly)
   useEffect(() => {
     if (!selectedId) return;
     const t = setInterval(() => refresh(), 5 * 60 * 1000);
@@ -116,13 +119,15 @@ export default function ClientView() {
     [businesses, selectedId]
   );
 
-  const hasData = deltas && deltas.length > 0;
+  const hasDeltas = deltas && deltas.length > 0;
+  const hasInsights = insights?.insights?.length > 0;
+  const isBackendDown = backendCheck && !backendCheck.ok;
 
   return (
     <div style={{ padding: 16, maxWidth: 1100, margin: "0 auto" }}>
       <h2 style={{ marginBottom: 6 }}>LCI — Client Portal</h2>
 
-      {/* Backend badge */}
+      {/* Backend badge row */}
       <div
         style={{
           display: "flex",
@@ -149,6 +154,19 @@ export default function ClientView() {
           </div>
         )}
 
+        <button
+          onClick={runBackendCheck}
+          style={{
+            padding: "4px 8px",
+            borderRadius: 8,
+            border: "1px solid #ddd",
+            background: "white",
+            cursor: "pointer",
+          }}
+        >
+          Re-check backend
+        </button>
+
         {lastUpdated ? (
           <div style={{ opacity: 0.7 }}>
             Last updated: {lastUpdated.toLocaleString()}
@@ -156,23 +174,24 @@ export default function ClientView() {
         ) : null}
       </div>
 
-      {/* If backend fails, show the message prominently */}
-      {backendCheck && !backendCheck.ok ? (
-        <div
-          style={{
-            border: "1px solid #f3c2c2",
-            background: "#fff",
-            borderRadius: 10,
-            padding: 12,
-            marginBottom: 12,
-          }}
-        >
+      {/* Backend down panel */}
+      {isBackendDown ? (
+        <div style={{ ...cardStyle("#f3c2c2"), marginBottom: 12 }}>
           <div style={{ fontWeight: 800, marginBottom: 6 }}>Can’t reach the server</div>
           <div style={{ fontSize: 12, opacity: 0.85, whiteSpace: "pre-wrap" }}>
             {backendCheck.body}
           </div>
-          <div style={{ marginTop: 10 }}>
-            <button onClick={() => window.location.reload()} style={{ padding: "6px 10px" }}>
+          <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button
+              onClick={runBackendCheck}
+              style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #ddd" }}
+            >
+              Try again
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #ddd" }}
+            >
               Reload page
             </button>
           </div>
@@ -188,7 +207,6 @@ export default function ClientView() {
               {selectedBusiness.address || "No address on file"}
             </div>
 
-            {/* If there are multiple businesses, we still lock to first (Phase C), but show a note */}
             {businesses.length > 1 ? (
               <div style={{ fontSize: 12, opacity: 0.65, marginTop: 6 }}>
                 (Client scope active: showing the first business on file.)
@@ -224,15 +242,28 @@ export default function ClientView() {
           />
         </label>
 
-        <button onClick={refresh} style={{ padding: "6px 10px" }} disabled={!selectedId}>
-          Refresh
+        <button
+          onClick={refresh}
+          style={{ padding: "6px 10px" }}
+          disabled={!selectedId || refreshing}
+        >
+          {refreshing ? "Refreshing…" : "Refresh"}
         </button>
 
         {loading ? <span>Loading…</span> : null}
-        {err ? (
-          <span style={{ color: "crimson", whiteSpace: "pre-wrap" }}>{err}</span>
-        ) : null}
+        {err ? <span style={{ color: "crimson", whiteSpace: "pre-wrap" }}>{err}</span> : null}
       </div>
+
+      {/* Getting started card (no data yet) */}
+      {!isBackendDown && selectedId && !hasDeltas && !hasInsights ? (
+        <div style={{ ...cardStyle("#ddd"), marginBottom: 12 }}>
+          <div style={{ fontWeight: 800, marginBottom: 6 }}>Getting started</div>
+          <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.4 }}>
+            We’ll start showing competitor movement and insights once we have enough daily snapshots.
+            If this is a brand-new account, check back tomorrow after the next snapshot run.
+          </div>
+        </div>
+      ) : null}
 
       {/* Main grid */}
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
@@ -241,16 +272,14 @@ export default function ClientView() {
           <h3 style={{ marginTop: 0 }}>Competitors (latest day)</h3>
 
           <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 8 }}>
-            {hasData && deltas?.[0]?.observed_day_utc
-              ? `As of: ${deltas[0].observed_day_utc}`
-              : "As of: —"}
+            {hasDeltas && deltas?.[0]?.observed_day_utc ? `As of: ${deltas[0].observed_day_utc}` : "As of: —"}
           </div>
 
-          {!hasData ? (
+          {!hasDeltas ? (
             <div style={{ opacity: 0.8 }}>
               No competitor movement to show yet.
               <div style={{ fontSize: 12, opacity: 0.7, marginTop: 8 }}>
-                If this is a new account, we may need a few daily snapshots before trends appear.
+                We may need a few daily snapshots before trends appear.
               </div>
             </div>
           ) : (
@@ -288,7 +317,7 @@ export default function ClientView() {
             {insights?.as_of ? `As of: ${insights.as_of}` : "As of: —"}
           </div>
 
-          {insights?.insights?.length ? (
+          {hasInsights ? (
             <ul style={{ paddingLeft: 18, margin: 0 }}>
               {insights.insights.map((it, idx) => (
                 <li key={`${it.type}-${idx}`} style={{ marginBottom: 8 }}>
