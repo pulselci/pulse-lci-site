@@ -1,0 +1,566 @@
+﻿# app/api/routes.py
+
+from __future__ import annotations
+
+import json
+import logging
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional
+from uuid import UUID
+
+from fastapi import APIRouter, HTTPException
+
+from app.core.db import get_conn
+
+# Routers
+from app.api.analytics import router as analytics_router
+from app.api.generated_reports import router as generated_reports_router
+from app.api.report_schedules import router as report_schedules_router
+
+# Schemas (your existing models/schemas)
+from app.models.schemas import (
+    BusinessIntakeIn,
+    BusinessOut,
+    BusinessWithCompetitorsOut,
+    ReportLatestOut,
+    ReportOut,
+    ReportRegisterIn,
+    SnapshotBulkIn,
+    SnapshotBulkOut,
+    SnapshotDetailOut,
+    SnapshotListItemOut,
+)
+
+from app.schemas.generated_report import GeneratedReportOut
+
+# Services
+from app.services import generated_report_service
+from app.services.analytics_service import compute_snapshot_deltas
+from app.services.business_service import (
+    create_business_and_competitors,
+    get_business_with_competitors,
+    list_businesses,
+)
+from app.services.generated_report_service import get_latest_report_for_business, insert_generated_report
+from app.services.momentum_service import MomentumInputs, compute_competitor_momentum
+from app.services.report_service import (
+    get_report_by_id,
+    get_latest_report,
+    list_reports_by_business,
+    register_report,
+)
+from app.services.review_velocity_service import ReviewVelocityInputs, compute_review_velocity_trend
+from app.services.share_of_voice_service import compute_share_of_voice_from_deltas
+from app.services.snapshot_service import get_snapshot_by_id, insert_snapshots_bulk, list_snapshots_by_business
+from app.services.threat_detection_service import ThreatInputs, compute_threat
+
+# NEW: insights
+from app.services.insights_service import add_competitor_surge_insight
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter()
+router.include_router(analytics_router)
+router.include_router(report_schedules_router)
+router.include_router(generated_reports_router)
+
+# --------------------
+# Health
+# --------------------
+
+
+@router.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+@router.get("/health/db")
+def health_db():
+    try:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("select 1;")
+        return {"db": "ok"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"db error: {str(e)}")
+
+
+# --------------------
+# Business
+# --------------------
+
+
+@router.post("/intake", response_model=BusinessWithCompetitorsOut)
+def intake(payload: BusinessIntakeIn):
+    try:
+        return create_business_and_competitors(payload)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed intake: {str(e)}")
+
+
+@router.get("/business/{business_id}", response_model=BusinessWithCompetitorsOut)
+def get_business(business_id: UUID):
+    result = get_business_with_competitors(business_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Business not found")
+    return result
+
+
+@router.get("/businesses", response_model=List[BusinessOut])
+def get_businesses():
+    return list_businesses()
+
+
+# --------------------
+# Snapshots
+# --------------------
+
+
+@router.post("/snapshot/bulk", response_model=SnapshotBulkOut)
+def snapshot_bulk(payload: SnapshotBulkIn):
+    try:
+        return insert_snapshots_bulk(payload)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to insert snapshots: {str(e)}")
+
+
+@router.get("/snapshots", response_model=List[SnapshotListItemOut])
+def get_snapshots(business_id: UUID):
+    return list_snapshots_by_business(business_id)
+
+
+@router.get("/snapshot/{snapshot_id}", response_model=SnapshotDetailOut)
+def get_snapshot(snapshot_id: UUID):
+    snap = get_snapshot_by_id(snapshot_id)
+    if not snap:
+        raise HTTPException(status_code=404, detail="Snapshot not found")
+    return snap
+
+
+@router.delete("/snapshot/{snapshot_id}")
+def delete_snapshot(snapshot_id: UUID):
+    try:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM snapshots WHERE id = %s RETURNING id", (snapshot_id,))
+                row = cur.fetchone()
+
+            if row is None:
+                raise HTTPException(status_code=404, detail="Snapshot not found")
+
+            conn.commit()
+
+        return {"deleted_snapshot_id": str(snapshot_id)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete snapshot: {str(e)}")
+
+
+# --------------------
+# Reports (legacy “reports” table)
+# --------------------
+
+
+@router.post("/report/register", response_model=ReportOut)
+def report_register(payload: ReportRegisterIn):
+    try:
+        return register_report(payload)
+    except Exception as e:
+        msg = str(e)
+        if "uq_reports_business_period" in msg or "duplicate key value" in msg:
+            raise HTTPException(status_code=409, detail="Report for that business + period already exists")
+        raise HTTPException(status_code=500, detail=f"Failed to register report: {msg}")
+
+
+@router.get("/reports/{business_id}/latest", response_model=ReportLatestOut)
+def reports_latest(business_id: UUID):
+    try:
+        report = get_latest_report_for_business(business_id)
+        return {"report": report, "signed_url_placeholder": None}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch latest report: {str(e)}")
+
+
+def _normalize_sections(sections: Any) -> Any:
+    """
+    Ensures sections.share_of_voice is always a JSON object:
+      {"market_total_reviews": int, "rows": [...]}
+
+    Handles legacy rows where share_of_voice was stored as a python repr string
+    like "ShareOfVoiceResult(...)". Also tolerates JSON stored as a string.
+    """
+    if not isinstance(sections, dict):
+        return sections
+
+    sov = sections.get("share_of_voice")
+
+    # Already correct
+    if isinstance(sov, dict):
+        return sections
+
+    # Some rows might have no share_of_voice at all
+    if sov is None:
+        return sections
+
+    # If it's a string, try to parse JSON; otherwise fallback
+    if isinstance(sov, str):
+        s = sov.strip()
+
+        # If it's JSON-in-a-string, parse it
+        if (s.startswith("{") and s.endswith("}")) or (s.startswith("[") and s.endswith("]")):
+            try:
+                sections["share_of_voice"] = json.loads(s)
+                return sections
+            except Exception:
+                pass
+
+        # Legacy python repr string -> replace with safe default
+        sections["share_of_voice"] = {"market_total_reviews": 0, "rows": []}
+        return sections
+
+    # Unexpected type -> replace with safe default
+    sections["share_of_voice"] = {"market_total_reviews": 0, "rows": []}
+    return sections
+
+
+@router.get("/reports/{business_id}", response_model=list[GeneratedReportOut])
+def list_reports_for_business(business_id: UUID):
+    rows = generated_report_service.list_reports_for_business(business_id)
+
+    fixed: List[Any] = []
+    for r in rows:
+        if isinstance(r, dict):
+            if "sections" in r:
+                r["sections"] = _normalize_sections(r["sections"])
+            fixed.append(r)
+        else:
+            # assume pydantic/object with .sections
+            try:
+                r.sections = _normalize_sections(getattr(r, "sections", None))
+            except Exception:
+                pass
+            fixed.append(r)
+
+    return fixed
+
+
+@router.get("/reports", response_model=List[ReportOut])
+def reports_list(business_id: UUID):
+    try:
+        return list_reports_by_business(business_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch reports: {str(e)}")
+
+
+@router.get("/report/{report_id}", response_model=GeneratedReportOut)
+def report_detail(report_id: UUID):
+    report = generated_report_service.get_report_by_id(report_id)
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    return report
+
+
+# --------------------
+# Generated Reports
+# --------------------
+
+
+@router.post("/business/{business_id}/reports/generate", response_model=GeneratedReportOut)
+def generate_business_report(business_id: UUID):
+    """
+    Manual report generation:
+      - inserts generated_reports row with summary_text + sections
+      - sections: top_moves, insights, momentum, velocity_trends, threats, share_of_voice
+    """
+    try:
+        days = 30
+        raw = compute_snapshot_deltas(business_id=business_id, days=days)
+
+        as_of = None
+        competitor_deltas: List[Dict[str, Any]] = []
+
+        # compute_snapshot_deltas may return:
+        #  - List[dict]
+        #  - Dict {"as_of": ..., "deltas": [...]}
+        if isinstance(raw, list):
+            competitor_deltas = raw
+        elif isinstance(raw, dict):
+            as_of = raw.get("as_of")
+            competitor_deltas = raw.get("deltas") or raw.get("competitors") or []
+        else:
+            competitor_deltas = []
+
+        competitor_deltas = [d for d in competitor_deltas if isinstance(d, dict)]
+
+        now = datetime.now(timezone.utc)
+        period_end = now
+        period_start = now - timedelta(days=days)
+
+        schedule_id = UUID("00000000-0000-0000-0000-000000000000")
+        schedule_meta = None
+
+        # Optional schedule lookup
+        try:
+            from app.services.report_schedule_service import get_schedule_for_business
+
+            schedule_meta = get_schedule_for_business(business_id)
+        except Exception:
+            schedule_meta = None
+
+        if isinstance(schedule_meta, dict) and schedule_meta.get("id"):
+            try:
+                schedule_id = UUID(str(schedule_meta["id"]))
+            except Exception:
+                schedule_id = UUID("00000000-0000-0000-0000-000000000000")
+
+        title = f"Competitive Report ({days}d) — {now.strftime('%Y-%m-%d')}"
+
+        # Always define these
+        momentum_items: List[Dict[str, Any]] = []
+        velocity_trends: List[Dict[str, Any]] = []
+        threats: List[Dict[str, Any]] = []
+        share_of_voice: Dict[str, Any] = {"market_total_reviews": 0, "rows": []}
+
+        if not competitor_deltas:
+            summary_text = "No competitor deltas available yet. Add snapshots to generate insights."
+            sections = {
+                "top_moves": [],
+                "insights": [],
+                "momentum": [],
+                "velocity_trends": [],
+                "threats": [],
+                "share_of_voice": share_of_voice,
+            }
+
+            return insert_generated_report(
+                business_id=business_id,
+                schedule_id=schedule_id,
+                period_start=period_start,
+                period_end=period_end,
+                status="generated",
+                title=title,
+                summary_text=summary_text,
+                sections=sections,
+                inputs={
+                    "source": "compute_snapshot_deltas",
+                    "days": days,
+                    "as_of": as_of,
+                    "count": 0,
+                    "schedule": schedule_meta,
+                },
+                error=None,
+            )
+
+        # -------------------------
+        # Top movers
+        # -------------------------
+        sorted_by_7d = sorted(
+            competitor_deltas,
+            key=lambda x: int((x.get("reviews_delta_7d") or 0) if x.get("reviews_delta_7d") is not None else 0),
+            reverse=True,
+        )
+
+        top_moves = [
+            {
+                "competitor_name": d.get("competitor_name") or d.get("name") or "Unknown",
+                "reviews_delta_7d": int(d.get("reviews_delta_7d") or 0) if d.get("reviews_delta_7d") is not None else 0,
+                "reviews_delta_1d": int(d.get("reviews_delta_1d") or 0),
+                "rating_delta_7d": d.get("rating_delta_7d"),
+            }
+            for d in sorted_by_7d[:5]
+        ]
+
+        insights: List[Dict[str, Any]] = []
+
+        # -------------------------
+        # Momentum
+        # -------------------------
+        for d in competitor_deltas:
+            competitor_name = d.get("competitor_name") or d.get("name") or "Unknown"
+            reviews_delta_1d = int(d.get("reviews_delta_1d") or 0)
+            reviews_delta_7d = int(d.get("reviews_delta_7d") or 0) if d.get("reviews_delta_7d") is not None else 0
+
+            rating_delta_7d: Optional[float] = d.get("rating_delta_7d")
+            try:
+                rating_delta_7d = float(rating_delta_7d) if rating_delta_7d is not None else None
+            except Exception:
+                rating_delta_7d = None
+
+            res = compute_competitor_momentum(
+                MomentumInputs(
+                    competitor_name=competitor_name,
+                    reviews_delta_1d=reviews_delta_1d,
+                    reviews_delta_7d=reviews_delta_7d,
+                    rating_delta_7d=rating_delta_7d,
+                )
+            )
+
+            momentum_items.append(
+                {
+                    "competitor_name": res.competitor_name,
+                    "momentum_score": res.momentum_score,
+                    "label": res.label,
+                    "explanation": res.explanation,
+                    "components": res.components,
+                }
+            )
+
+        momentum_items.sort(key=lambda x: int(x.get("momentum_score") or 0), reverse=True)
+
+        # -------------------------
+        # Velocity trends
+        # -------------------------
+        for d in competitor_deltas:
+            competitor_name = d.get("competitor_name") or d.get("name") or "Unknown"
+            reviews_delta_1d = int(d.get("reviews_delta_1d") or 0)
+            reviews_delta_7d = int(d.get("reviews_delta_7d") or 0) if d.get("reviews_delta_7d") is not None else 0
+
+            v = compute_review_velocity_trend(
+                ReviewVelocityInputs(
+                    competitor_name=competitor_name,
+                    reviews_delta_1d=reviews_delta_1d,
+                    reviews_delta_7d=reviews_delta_7d,
+                )
+            )
+
+            velocity_trends.append(
+                {
+                    "competitor_name": v.competitor_name,
+                    "velocity_1d": v.velocity_1d,
+                    "velocity_7d_avg": v.velocity_7d_avg,
+                    "velocity_ratio": v.velocity_ratio,
+                    "anomaly": v.anomaly,
+                    "explanation": v.explanation,
+                }
+            )
+
+        anomaly_rank = {"spike": 0, "drop": 1, "normal": 2}
+        velocity_trends.sort(key=lambda x: (anomaly_rank.get(x.get("anomaly"), 9), -float(x.get("velocity_ratio") or 0.0)))
+
+        # -------------------------
+        # Threat detection
+        # -------------------------
+        momentum_by_name = {m.get("competitor_name"): m for m in momentum_items}
+        velocity_by_name = {v.get("competitor_name"): v for v in velocity_trends}
+
+        for d in competitor_deltas:
+            competitor_name = d.get("competitor_name") or d.get("name") or "Unknown"
+            m = momentum_by_name.get(competitor_name) or {}
+            v = velocity_by_name.get(competitor_name) or {}
+
+            momentum_score = int(m.get("momentum_score") or 0)
+            velocity_ratio = float(v.get("velocity_ratio") or 0.0)
+            reviews_delta_7d = int(d.get("reviews_delta_7d") or 0) if d.get("reviews_delta_7d") is not None else 0
+
+            tr = compute_threat(
+                ThreatInputs(
+                    competitor_name=competitor_name,
+                    momentum_score=momentum_score,
+                    velocity_ratio=velocity_ratio,
+                    reviews_delta_7d=reviews_delta_7d,
+                )
+            )
+
+            threats.append(
+                {
+                    "competitor_name": tr.competitor_name,
+                    "threat_level": tr.threat_level,
+                    "threat_score": tr.threat_score,
+                    "reasons": tr.reasons,
+                }
+            )
+
+        level_rank = {"high": 0, "medium": 1, "low": 2}
+        threats.sort(key=lambda x: (level_rank.get(x["threat_level"], 9), -int(x["threat_score"])))
+
+        # -------------------------
+        # Share of voice (FIXED)
+        # -------------------------
+        try:
+            try:
+                share_of_voice = (
+                    compute_share_of_voice_from_deltas(
+                        competitor_deltas=competitor_deltas,
+                        include_business_self=True,
+                    )
+                    or {"market_total_reviews": 0, "rows": []}
+                )
+            except TypeError:
+                share_of_voice = compute_share_of_voice_from_deltas(competitor_deltas) or {"market_total_reviews": 0, "rows": []}
+        except Exception:
+            share_of_voice = {"market_total_reviews": 0, "rows": []}
+
+        # Force JSON-safe dict (avoid storing repr() strings)
+        if hasattr(share_of_voice, "model_dump"):
+            share_of_voice = share_of_voice.model_dump()
+        elif hasattr(share_of_voice, "dict"):
+            share_of_voice = share_of_voice.dict()
+        elif not isinstance(share_of_voice, dict):
+            share_of_voice = {"market_total_reviews": 0, "rows": []}
+
+        # Guard: log only if SOV looks wrong
+        try:
+            mtr = int(share_of_voice.get("market_total_reviews") or 0)
+            nonzero_counts = sum(1 for d in competitor_deltas if int(d.get("google_review_count") or 0) > 0)
+            if mtr == 0 and nonzero_counts > 0:
+                logger.warning(
+                    "SOV market_total_reviews=0 with nonzero review counts | "
+                    "business_id=%s schedule_id=%s period_end=%s nonzero_counts=%s",
+                    business_id,
+                    schedule_id,
+                    period_end,
+                    nonzero_counts,
+                )
+        except Exception:
+            pass
+
+        # -------------------------
+        # Summary text
+        # -------------------------
+        leader = momentum_items[0] if momentum_items else None
+        if leader:
+            summary_text = f"Momentum leader: {leader['competitor_name']} ({leader['label']}, score {leader['momentum_score']})."
+        else:
+            summary_text = "Report generated."
+
+        # -------------------------
+        # NEW: Insights (Competitor Surge) — generation-time
+        # -------------------------
+        # Build a tiny "sections" view just for the insight, so it can read momentum and append into insights list.
+        tmp_sections = {"momentum": momentum_items, "insights": insights}
+        add_competitor_surge_insight(tmp_sections)
+        insights = tmp_sections.get("insights") or insights
+
+        sections = {
+            "top_moves": top_moves,
+            "insights": insights,
+            "momentum": momentum_items,
+            "velocity_trends": velocity_trends,
+            "threats": threats,
+            "share_of_voice": share_of_voice,
+        }
+
+        return insert_generated_report(
+            business_id=business_id,
+            schedule_id=schedule_id,
+            period_start=period_start,
+            period_end=period_end,
+            status="generated",
+            title=title,
+            summary_text=summary_text,
+            sections=sections,
+            inputs={
+                "source": "compute_snapshot_deltas",
+                "days": days,
+                "as_of": as_of,
+                "count": len(competitor_deltas),
+                "schedule": schedule_meta,
+            },
+            error=None,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate report: {str(e)}")

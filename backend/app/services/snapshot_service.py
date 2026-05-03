@@ -126,3 +126,50 @@ def get_snapshot_by_id(snapshot_id: UUID) -> SnapshotDetailOut | None:
 
     # row is dict-like from your cursor config
     return SnapshotDetailOut(**row)
+
+from datetime import datetime, timezone
+from typing import List
+from uuid import UUID
+
+from app.services.business_service import get_business_with_competitors
+from app.services.collectors.google_metrics import fetch_google_metrics_by_place_id
+from app.models.schemas import SnapshotIn, SnapshotBulkIn
+
+
+def collect_snapshots_for_business(business_id: UUID):
+    bwc = get_business_with_competitors(business_id)
+    competitors = bwc.competitors or []
+
+    observed_at = datetime.now(timezone.utc)
+
+    snapshots: List[SnapshotIn] = []
+
+    for c in competitors:
+        rating = None
+        review_count = None
+
+        if c.google_place_id:
+            metrics = fetch_google_metrics_by_place_id(c.google_place_id)
+            if metrics:
+                rating = metrics.rating
+                review_count = metrics.review_count
+
+        snapshots.append(
+            SnapshotIn(
+                business_id=business_id,
+                competitor_id=c.id,
+                observed_at=observed_at,
+                google_rating=rating,
+                google_review_count=review_count,
+                offer_summary=None,
+                price_hint=None,
+                visibility_score=None,
+                notes="auto: onboarding",
+                raw={
+                    "source": "onboarding",
+                    "google_place_id": c.google_place_id,
+                },
+            )
+        )
+
+    return insert_snapshots_bulk(SnapshotBulkIn(snapshots=snapshots))

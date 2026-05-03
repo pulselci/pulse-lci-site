@@ -34,27 +34,30 @@ def create_business_and_competitors(payload: BusinessIntakeIn) -> BusinessWithCo
             business = BusinessOut(**biz_row)
 
             competitors_out: list[CompetitorOut] = []
+
             for c in payload.competitors:
                 try:
                     cur.execute(
                         """
                         insert into public.competitors
-                          (business_id, name, website_url, google_place_id, google_maps_url)
-                        values (%s, %s, %s, %s, %s)
-                        returning id, business_id, name, website_url, google_place_id, google_maps_url, created_at
+                            (business_id, name, website_url, google_place_id, google_maps_url, is_business)
+                        values
+                            (%s, %s, %s, %s, %s, %s)
+                        returning id, business_id, name, website_url, google_place_id, google_maps_url, created_at, is_business
                         """,
                         (
-                            business.id,
+                            str(business.id),
                             c.name,
-                            str(c.website_url) if c.website_url else None,
+                            c.website_url,
                             c.google_place_id,
-                            str(c.google_maps_url) if c.google_maps_url else None,
+                            c.google_maps_url,
+                            bool(c.is_business),
                         ),
                     )
-                    competitors_out.append(CompetitorOut(**cur.fetchone()))
+                    row = cur.fetchone()
+                    competitors_out.append(CompetitorOut(**row))
                 except IntegrityError:
                     conn.rollback()
-                    # Skip duplicates in MVP
                     with conn.cursor() as cur2:
                         cur2.execute("select 1;")
                     continue
@@ -80,16 +83,19 @@ def get_business_with_competitors(business_id: UUID) -> BusinessWithCompetitorsO
 
             cur.execute(
                 """
-                select id, business_id, name, website_url, google_place_id, google_maps_url, created_at
+                select id, business_id, name, website_url, google_place_id, google_maps_url, created_at, is_business
                 from public.competitors
                 where business_id = %s
-                order by created_at asc
+                order by created_at, name
                 """,
                 (business_id,),
             )
             competitors = [CompetitorOut(**r) for r in cur.fetchall()]
 
-            return BusinessWithCompetitorsOut(business=BusinessOut(**biz), competitors=competitors)
+            return BusinessWithCompetitorsOut(
+                business=BusinessOut(**biz),
+                competitors=competitors,
+            )
 
 
 def list_businesses() -> List[BusinessOut]:
@@ -108,6 +114,4 @@ def list_businesses() -> List[BusinessOut]:
             )
             rows = cur.fetchall()
 
-    # Your cursor is returning dict-like rows already (since BusinessOut(**biz_row) works above),
-    # so we can use the same pattern here:
     return [BusinessOut(**r) for r in rows]

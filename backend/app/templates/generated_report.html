@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ report.title or "Competitive Report" }}</title>
+  <style>
+    @page {
+      size: Letter;
+      margin: 0.55in 0.55in 0.65in 0.55in;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #172033;
+      background: #ffffff;
+      font-size: 11px;
+      line-height: 1.42;
+    }
+
+    .page {
+      width: 100%;
+    }
+
+    .header {
+      border-bottom: 2px solid #d9e2f2;
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+    }
+
+    .eyebrow {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #5c6f91;
+      margin-bottom: 8px;
+    }
+
+    .title-row {
+      display: table;
+      width: 100%;
+    }
+
+    .title-col,
+    .meta-col {
+      display: table-cell;
+      vertical-align: top;
+    }
+
+    .title-col {
+      width: 68%;
+      padding-right: 18px;
+    }
+
+    .meta-col {
+      width: 32%;
+    }
+
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 26px;
+      line-height: 1.1;
+      color: #122033;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: #53627d;
+      margin: 0;
+    }
+
+    .meta-card {
+      border: 1px solid #d9e2f2;
+      border-radius: 10px;
+      padding: 12px 14px;
+      background: #f8fbff;
+    }
+
+    .meta-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #6c7d98;
+      font-weight: 700;
+      margin-bottom: 3px;
+    }
+
+    .meta-value {
+      font-size: 12px;
+      color: #172033;
+      margin-bottom: 10px;
+    }
+
+    .meta-value:last-child {
+      margin-bottom: 0;
+    }
+
+    .section {
+        margin-bottom: 14px;
+    }
+
+    .section-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: #122033;
+        margin: 0 0 10px 0;
+        padding-bottom: 6px;
+        border-bottom: 1px solid #dde5f0;
+        page-break-after: avoid;
+        break-after: avoid;
+    }
+
+    .section-title + .summary-card,
+    .section-title + .cards,
+    .section-title + .section {
+        page-break-before: avoid;
+        break-before: avoid;
+    }
+
+    .summary-card {
+    border: 1px solid #dce6f5;
+    border-radius: 12px;
+    background: #f8fbff;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    }
+
+    .next-moves-card {
+        page-break-inside: avoid;
+        break-inside: avoid;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+    }
+
+    .next-moves-card ol {
+        padding-left: 16px !important;
+        margin: 0 !important;
+    }
+
+    .next-moves-card li {
+        margin-bottom: 6px !important;
+    }
+
+    .summary-grid {
+      display: table;
+      width: 100%;
+      table-layout: fixed;
+    }
+
+    .summary-main,
+    .summary-side {
+      display: table-cell;
+      vertical-align: top;
+    }
+
+    .summary-main {
+      width: 68%;
+      padding-right: 16px;
+    }
+
+    .summary-side {
+      width: 32%;
+    }
+
+    .summary-heading {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #62738f;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .summary-text {
+      font-size: 15px;
+      line-height: 1.45;
+      font-weight: 700;
+      color: #122033;
+      margin: 0;
+    }
+
+    .summary-side-box {
+      border-left: 1px solid #dce6f5;
+      padding-left: 14px;
+    }
+
+    .summary-side-item {
+      margin-bottom: 10px;
+    }
+
+    .summary-side-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .priority-grid {
+      display: table;
+      width: 100%;
+      border-spacing: 0;
+      margin-bottom: 16px;
+    }
+
+    .priority-card {
+      display: table-cell;
+      width: 33.333%;
+      vertical-align: top;
+      border: 1px solid #dde5f0;
+      border-radius: 12px;
+      padding: 12px 12px 10px 12px;
+      background: #fff;
+    }
+
+    .priority-gap {
+      display: table-cell;
+      width: 10px;
+    }
+
+    .priority-card h3 {
+      margin: 0 0 10px 0;
+      font-size: 12px;
+      color: #122033;
+    }
+
+    .priority-list {
+      margin: 0;
+      padding-left: 16px;
+    }
+
+    .priority-list li {
+      margin: 0 0 8px 0;
+    }
+
+    .cards {
+      margin-top: 8px;
+    }
+
+    .insight-card {
+      border: 1px solid #dde5f0;
+      border-radius: 12px;
+      padding: 13px 14px 12px 14px;
+      margin-bottom: 12px;
+      background: #fff;
+      page-break-inside: avoid;
+    }
+
+    .insight-top {
+      display: table;
+      width: 100%;
+      margin-bottom: 8px;
+    }
+
+    .insight-title-col,
+    .insight-badge-col {
+      display: table-cell;
+      vertical-align: top;
+    }
+
+    .insight-title-col {
+      width: 80%;
+      padding-right: 10px;
+    }
+
+    .insight-badge-col {
+      width: 20%;
+      text-align: right;
+    }
+
+    .insight-summary {
+      font-size: 14px;
+      line-height: 1.38;
+      font-weight: 700;
+      color: #122033;
+      margin: 0;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid #cdd8ea;
+      background: #f5f8fd;
+      color: #344867;
+      white-space: nowrap;
+    }
+
+    .badge-immediate {
+      background: #fff4ea;
+      border-color: #f3cfaa;
+      color: #9a4f00;
+    }
+
+    .badge-next {
+      background: #eef5ff;
+      border-color: #c6dafd;
+      color: #2957a4;
+    }
+
+    .badge-monitor {
+      background: #f4f6f9;
+      border-color: #d7dde7;
+      color: #58667c;
+    }
+
+    .detail-grid {
+      display: table;
+      width: 100%;
+      border-spacing: 0;
+      margin-top: 8px;
+    }
+
+    .detail-col {
+      display: table-cell;
+      width: 33.333%;
+      vertical-align: top;
+      padding-right: 10px;
+    }
+
+    .detail-col:last-child {
+      padding-right: 0;
+    }
+
+    .detail-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #6b7b95;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .detail-text {
+      font-size: 11px;
+      color: #243248;
+      margin: 0;
+    }
+
+    .muted {
+      color: #607089;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      padding-top: 10px;
+      border-top: 1px solid #e1e7f0;
+      font-size: 10px;
+      color: #64738b;
+    }
+
+    .empty-note {
+      border: 1px dashed #d3dceb;
+      border-radius: 10px;
+      padding: 12px;
+      color: #5f6f88;
+      background: #fafcff;
+    }
+
+    .narrative-block {
+      white-space: pre-line;
+    }
+  </style>
+</head>
+<body>
+  {% set sections = report.sections or {} %}
+  {% set experience = sections.get("report_experience") or {} %}
+  {% set grouped_sections = experience.get("grouped_sections") or [] %}
+  {% set flat_insights = experience.get("flat_insights") or [] %}
+  {% set sov = sections.get("share_of_voice") or {} %}
+  {% set sov_rows = sov.get("rows") or [] %}
+  {% set sov_donut = sections.get("share_of_voice_donut") or {} %}
+  {% set review_count_bar = sections.get("review_count_bar") or {} %}
+  {% set review_pulse = sections.get("review_pulse") or {} %}
+  {% set review_target = experience.get("review_target") or {} %}
+  {% set review_pace = experience.get("review_pace") or {} %}
+  {% set review_overtake = experience.get("review_overtake") or {} %}
+
+  {% set immediate_items = [] %}
+  {% set next_items = [] %}
+  {% set monitor_items = [] %}
+
+  {% for item in flat_insights %}
+    {% if item.get("priority") == "Immediate" %}
+      {% set _ = immediate_items.append(item) %}
+    {% elif item.get("priority") == "Next" %}
+      {% set _ = next_items.append(item) %}
+    {% elif item.get("priority") == "Monitor" %}
+      {% set _ = monitor_items.append(item) %}
+    {% endif %}
+  {% endfor %}
+
+  <div class="page">
+    <div class="header">
+      <div class="eyebrow">Local Competitor Intelligence</div>
+
+      <div class="title-row">
+        <div class="title-col">
+          <h1>{{ report.title or "Competitive Report" }}</h1>
+          <p class="subtitle">
+            Deterministic competitive positioning report built from market movement, review trends, and customer perception signals.
+          </p>
+        </div>
+
+        <div class="meta-col">
+          <div class="meta-card">
+            <div class="meta-label">Reporting Window</div>
+            <div class="meta-value">
+              {{ report.period_start.strftime("%b %d, %Y") if report.period_start else "N/A" }}
+              —
+              {{ report.period_end.strftime("%b %d, %Y") if report.period_end else "N/A" }}
+            </div>
+
+            <div class="meta-label">Generated</div>
+            <div class="meta-value">
+              {{ report.generated_at.strftime("%b %d, %Y") if report.generated_at else "N/A" }}
+            </div>
+
+            <div class="meta-label">Status</div>
+            <div class="meta-value">{{ report.status or "generated" }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Executive Summary</div>
+
+      <div class="summary-card">
+        <div class="summary-grid">
+          <div class="summary-main">
+            <div class="summary-heading">Headline takeaway</div>
+            <p class="summary-text" style="white-space: pre-line;">
+            {{ report.summary_text or "This reporting period surfaced several competitive signals worth reviewing." }}
+            </p>
+          </div>
+
+          <div class="summary-side">
+            <div class="summary-side-box">
+              <div class="summary-side-item">
+                <div class="meta-label">Immediate priorities</div>
+                <div class="meta-value">{{ immediate_items|length }}</div>
+              </div>
+              <div class="summary-side-item">
+                <div class="meta-label">Position context</div>
+                <div class="meta-value">{{ next_items|length }}</div>
+              </div>
+              <div class="summary-side-item">
+                <div class="meta-label">Monitor items</div>
+                <div class="meta-value">{{ monitor_items|length }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if report.sections.report_experience.this_month_focus %}
+        <div class="summary-card">
+            <div class="summary-heading">This Month’s Focus</div>
+
+            <ul style="padding-left: 18px; margin: 8px 0 0 0;">
+            {% for item in report.sections.report_experience.this_month_focus %}
+                {% set clean_title = (item.title or "")|replace("• ", "")|replace("•", "")|trim %}
+                <li style="margin-bottom: 8px;">
+                {{ clean_title }}
+                </li>
+            {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+      {% if flat_insights %}
+        <div class="priority-grid">
+          <div class="priority-card">
+            <h3>Supporting Signals</h3>
+
+            {% if immediate_items %}
+                {% set ns = namespace(focus_text="", shown=0) %}
+
+                {% if report.sections.report_experience.this_month_focus %}
+                {% for f in report.sections.report_experience.this_month_focus %}
+                    {% set ns.focus_text = ns.focus_text ~ " " ~ ((f.title or "")|lower) %}
+                {% endfor %}
+                {% endif %}
+
+                <ul class="priority-list">
+                {% for item in immediate_items %}
+                    {% set summary = (item.get("summary") or "") %}
+                    {% set summary_lower = summary|lower %}
+
+                    {% set is_duplicate_focus =
+                    ("positioning opening" in summary_lower and "win on" in ns.focus_text)
+                    or ("leading the market" in summary_lower and "leading the market" in ns.focus_text)
+                    or ("controls" in summary_lower and "controls" in ns.focus_text)
+                    %}
+
+                    {% if not is_duplicate_focus and ns.shown < 3 %}
+                    <li>{{ summary }}</li>
+                    {% set ns.shown = ns.shown + 1 %}
+                    {% endif %}
+                {% endfor %}
+                </ul>
+
+                {% if ns.shown == 0 %}
+                <div class="muted">Supporting signals are already reflected in this month’s focus.</div>
+                {% endif %}
+            {% else %}
+                <div class="muted">No supporting signals surfaced this cycle.</div>
+            {% endif %}
+            </div>
+
+          <div class="priority-gap"></div>
+
+          <div class="priority-card">
+            <h3>Position Context</h3>
+            {% if next_items %}
+              <ul class="priority-list">
+                {% for item in next_items[:3] %}
+                  <li>{{ item.get("summary") }}</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <div class="muted">No next-step items surfaced this cycle.</div>
+            {% endif %}
+          </div>
+
+          <div class="priority-gap"></div>
+
+          <div class="priority-card">
+            <h3>Monitor</h3>
+            {% if monitor_items %}
+              <ul class="priority-list">
+                {% for item in monitor_items[:3] %}
+                  <li>{{ item.get("summary") }}</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <div class="muted">No monitoring items surfaced this cycle.</div>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="section">
+      <div class="section-title">Strategic Recommendations</div>
+
+      {% if grouped_sections %}
+        {% for group in grouped_sections %}
+          <div class="section" style="margin-bottom: 14px;">
+            <div class="section-title">{{ group.get("section") }}</div>
+
+            <div class="cards">
+              {% for item in group.get("insights") or [] %}
+                {% set priority = item.get("priority") or "Monitor" %}
+                <div class="insight-card">
+                  <div class="insight-top">
+                    <div class="insight-title-col">
+                      <p class="insight-summary">{{ item.get("summary") }}</p>
+                    </div>
+                    <div class="insight-badge-col">
+                      <span class="badge {% if priority == 'Immediate' %}badge-immediate{% elif priority == 'Next' %}badge-next{% else %}badge-monitor{% endif %}">
+                        {{ priority }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="detail-grid">
+                    <div class="detail-col">
+                      <div class="detail-label">Why it matters</div>
+                      <p class="detail-text">{{ item.get("why_it_matters") or item.get("implication") or "This signal helps clarify where to focus next." }}</p>
+                    </div>
+                    <div class="detail-col">
+                      <div class="detail-label">Action</div>
+                      <p class="detail-text">{{ item.get("action") or item.get("recommended_action") or "Review this item and decide whether it changes messaging, operations, or monitoring." }}</p>
+                    </div>
+                    <div class="detail-col">
+                      {% if item.get("how_to_implement") %}
+                        <div class="detail-label">How to implement</div>
+                        <p class="detail-text">{{ item.get("how_to_implement") }}</p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-note">
+          No client-facing report experience data was available for this report.
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="section">
+      <div class="section-title">Supporting Market Signals</div>
+
+      <div class="summary-card">
+        <div class="summary-heading">Customer Perception Narrative</div>
+        <div class="detail-text narrative-block">
+          {{ (sections.get("customer_perception_insights") or {}).get("body") }}
+        </div>
+      </div>
+
+      {% set friction = sections.get("customer_friction_signals") or {} %}
+      {% if friction %}
+        <div class="summary-card">
+          <div class="summary-heading">{{ friction.get("title") or "Customer Friction Signals" }}</div>
+
+          {% if friction.get("subtitle") %}
+            <div class="detail-text" style="margin-bottom: 8px; color: #667085;">
+              {{ friction.get("subtitle") }}
+            </div>
+          {% endif %}
+
+          {% if friction.get("summary") %}
+            <div class="detail-text narrative-block" style="margin-bottom: 14px;">
+              {{ friction.get("summary") }}
+            </div>
+          {% endif %}
+
+          {% if friction.get("summary") %}
+            <div style="margin-top: 10px; margin-bottom: 14px; padding: 8px 10px; border: 1px solid #f1c0c0; border-radius: 6px; background: #fff5f5; font-size: 12px;">
+                <strong style="color:#b42318;">Top Issue This Month:</strong>
+                Quality complaints are above market levels and should be addressed first.
+            </div>
+            {% endif %}
+
+          {% set friction_themes = friction.get("themes") or [] %}
+          {% if friction_themes %}
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+              <thead>
+                <tr>
+                  <th style="padding: 10px 12px; border-bottom: 1px solid #e6e9ef; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #667085;">
+                    Status
+                  </th>
+                  <th style="padding: 10px 12px; border-bottom: 1px solid #e6e9ef; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #667085;">
+                    Theme
+                  </th>
+                  <th style="padding: 10px 12px; border-bottom: 1px solid #e6e9ef; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #667085;">
+                    You
+                  </th>
+                  <th style="padding: 10px 12px; border-bottom: 1px solid #e6e9ef; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #667085;">
+                    Market
+                  </th>
+                  <th style="padding: 10px 12px; border-bottom: 1px solid #e6e9ef; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #667085;">
+                    Highest Competitor
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for row in friction_themes %}
+                    <tr>
+
+                    <!-- STATUS -->
+                    <td style="padding: 10px 12px; border-bottom: 1px solid #e6e9ef; font-weight: 700; white-space: nowrap;">
+                        {% if row.owner_count == 0 and row.market_total > 0 %}
+                        <span style="color:#667085;">Advantage</span>
+                        {% elif row.owner_count > row.market_average %}
+                        <span style="color:#b42318;">Risk</span>
+                        {% elif row.owner_count > 0 %}
+                        <span style="color:#b54708;">Watch</span>
+                        {% else %}
+                        <span style="color:#98a2b3;">—</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- THEME -->
+                    <td style="padding: 10px 12px; border-bottom: 1px solid #e6e9ef;">
+                        {{ row.get("theme_label") }}
+                    </td>
+
+                    <!-- YOU -->
+                    <td style="padding: 10px 12px; border-bottom: 1px solid #e6e9ef; font-weight: 600;">
+                        {{ row.get("owner_count") }}
+                    </td>
+
+                    <!-- MARKET -->
+                    <td style="padding: 10px 12px; border-bottom: 1px solid #e6e9ef;">
+                        {{ row.market_total }}{% if row.market_total == 1 %} complaint{% else %} complaints{% endif %}
+                    </td>
+
+                    <!-- HIGHEST COMPETITOR -->
+                    <td style="padding: 10px 12px; border-bottom: 1px solid #e6e9ef;">
+                        {% if row.get("leader_competitor_name") %}
+                        {{ row.get("leader_competitor_name") }} ({{ row.get("leader_count") }})
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="detail-text" style="margin-top: 10px; color: #667085;">
+              Counts reflect repeated negative-review themes found through deterministic phrase matching.
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      {% if sov_donut %}
+        <div class="summary-card">
+          <div class="summary-heading">Review Share</div>
+
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="width: 220px; vertical-align: top; text-align: center; padding-right: 12px;">
+                <img
+                  src="data:image/png;base64,{{ sov_donut.chart_base64 }}"
+                  alt="Review share donut chart"
+                  style="width: 180px; height: 180px; display: block; margin: 0 auto;"
+                />
+              </td>
+
+              <td style="vertical-align: top;">
+                {% for item in sov_donut.legend_items %}
+                  <div style="padding: 7px 0; border-bottom: 1px solid #edf1f5;">
+                    <span style="display:inline-block; width:10px; height:10px; background:{{ item.color }}; margin-right:8px;"></span>
+                    <span style="font-size:13px; {% if item.is_business %}font-weight:700; color:#1f4e79;{% endif %}">
+                      {{ item.label }}
+                    </span>
+                    <span style="float:right; font-size:13px; {% if item.is_business %}font-weight:700; color:#1f4e79;{% endif %}">
+                      {{ item.percent_display }}% ({{ item.reviews_total }} reviews)
+                    </span>
+                  </div>
+                {% endfor %}
+              </td>
+            </tr>
+          </table>
+        </div>
+      {% endif %}
+
+      {% if review_count_bar %}
+        <div class="summary-card">
+          <div class="summary-heading">Review Count Comparison</div>
+
+          <div class="detail-text" style="margin-bottom: 6px;">
+            {% if review_count_bar.gap_to_leader is not none %}
+              You are <strong>{{ review_count_bar.gap_to_leader }}</strong> reviews behind the market leader.
+            {% else %}
+              You currently lead the market on total Google reviews.
+            {% endif %}
+          </div>
+
+          <div>
+            <img
+                src="data:image/png;base64,{{ review_count_bar.chart_base64 }}"
+                alt="Review count comparison chart"
+                style="width: 100%; max-width: 600px; display: block; margin: 6px auto 4px auto;"
+            />
+          </div>
+        </div>
+      {% endif %}
+
+      {% if review_pulse %}
+        <div class="summary-card">
+          <div class="summary-heading">Review Pulse</div>
+
+          <div class="detail-text" style="margin-bottom: 10px;">
+            This chart shows net review change over the last 30 days. Up means a competitor is gaining review momentum. Down means reviews are being lost or momentum has reversed.
+          </div>
+
+          <img
+            src="data:image/png;base64,{{ review_pulse.chart_base64 }}"
+            alt="Review pulse chart"
+            style="width: 100%; max-width: 620px; display: block; margin: 6px auto 4px auto;"
+            />
+        </div>
+      {% endif %}
+
+      {% if sov_rows %}
+        <div class="summary-card">
+          <div class="summary-heading">Share of Voice Snapshot</div>
+          <p class="detail-text">
+            Market total reviews: {{ sov.get("market_total_reviews") or 0 }}.
+            Top competitors in this snapshot:
+            {% for row in sov_rows[:3] %}
+              {{ row.get("competitor_name") or row.get("name") }}{% if row.get("share_pct") is not none %} ({{ (row.get("share_pct") or 0) | round(0) | int }}%){% endif %}{% if not loop.last %}, {% endif %}
+            {% endfor %}.
+          </p>
+        </div>
+      {% endif %}
+    </div>
+
+    {% if report.sections.report_experience.this_month_focus %}
+    <div class="summary-card next-moves-card">
+        
+        <div class="summary-heading">Next Moves (Action Plan)</div>
+
+      <div class="detail-text" style="margin-bottom: 10px;">
+        {% if review_target %}
+            <strong>{{ review_target.mode }}:</strong>
+            {{ review_target.headline }}
+
+            {% if review_pace %}
+                <br/>
+                <span style="display:block; margin-top: 2px;">
+                    <strong>{{ review_pace.status }}:</strong>
+                    {{ review_pace.message }}
+                </span>
+            {% endif %}
+
+            {% if review_overtake %}
+            <span style="display:block; margin-top: 2px;">
+                <strong>{{ review_overtake.status }}:</strong>
+                {{ review_overtake.message }}
+            </span>
+        {% endif %}
+
+        {% else %}
+            Clear action items to improve position before the next report.
+        {% endif %}
+    </div>
+
+        <ol style="padding-left: 16px; margin: 0;">
+        {% for item in report.sections.report_experience.this_month_focus %}
+        <li style="margin-bottom: 10px;">
+            <strong>{{ item.title }}</strong>
+            {% if item.detail %}
+            <div class="detail-text" style="margin-top: 3px;">
+                {{ item.detail }}
+            </div>
+            {% endif %}
+        </li>
+    {% endfor %}
+        </ol>
+    </div>
+    {% endif %}
+
+    <div class="footer-note">
+      This report is generated from deterministic competitive signals across snapshots, review trends, and customer perception themes. It is designed to support positioning and decision-making, not replace operator judgment.
+    </div>
+  </div>
+</body>
+</html>

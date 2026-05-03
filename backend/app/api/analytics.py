@@ -2,7 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
 
-from app.core.db import get_conn
+from app.services.analytics_service import compute_snapshot_deltas
 
 router = APIRouter()
 
@@ -20,65 +20,8 @@ def snapshots_deltas(business_id: UUID, days: int = 30):
     if days < 2 or days > 365:
         raise HTTPException(status_code=400, detail="days must be between 2 and 365")
 
-    sql = """
-    with daily as (
-      select
-        s.business_id,
-        s.competitor_id,
-        date_trunc('day', s.observed_at) as day_utc,
-        s.google_rating,
-        s.google_review_count,
-        row_number() over (
-          partition by s.business_id, s.competitor_id, date_trunc('day', s.observed_at)
-          order by s.created_at desc
-        ) as rn
-      from snapshots s
-      where s.business_id = %s
-        and s.observed_at >= (now() at time zone 'utc') - (%s::int || ' days')::interval
-    ),
-    d as (
-      select
-        business_id,
-        competitor_id,
-        day_utc,
-        google_rating,
-        google_review_count,
-        lag(google_rating, 1) over (partition by business_id, competitor_id order by day_utc) as rating_1d_ago,
-        lag(google_rating, 7) over (partition by business_id, competitor_id order by day_utc) as rating_7d_ago,
-        lag(google_review_count, 1) over (partition by business_id, competitor_id order by day_utc) as reviews_1d_ago,
-        lag(google_review_count, 7) over (partition by business_id, competitor_id order by day_utc) as reviews_7d_ago
-      from daily
-      where rn = 1
-    ),
-    latest_day as (
-      select max(day_utc) as max_day from d
-    )
-    select
-      d.business_id,
-      d.competitor_id,
-      c.name as competitor_name,
-      d.day_utc as observed_day_utc,
-      d.google_rating,
-      d.google_review_count,
-      (d.google_rating - d.rating_1d_ago) as rating_delta_1d,
-      (d.google_rating - d.rating_7d_ago) as rating_delta_7d,
-      (d.google_review_count - d.reviews_1d_ago) as reviews_delta_1d,
-      (d.google_review_count - d.reviews_7d_ago) as reviews_delta_7d
-    from d
-    join latest_day ld on d.day_utc = ld.max_day
-    join competitors c on c.id = d.competitor_id
-    order by d.google_rating desc nulls last, d.google_review_count desc nulls last;
-    """
-
     try:
-        with get_conn() as conn:
-            with conn.cursor() as cur:
-                cur.execute(sql, (str(business_id), days))
-                rows = cur.fetchall()
-
-        # Works for DictRow/RealDictCursor (row behaves like a mapping)
-        return [dict(r) for r in rows]
-
+        return compute_snapshot_deltas(business_id=business_id, days=days)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to compute deltas: {str(e)}")
 
@@ -88,7 +31,12 @@ def insights(business_id: UUID, days: int = 30):
     """
     Rules-based insights (no ML) computed from the latest-day deltas dataset.
     """
-    rows = snapshots_deltas(business_id=business_id, days=days)
+    # Use the same dataset (service) so this endpoint works even if we refactor API
+    try:
+        rows = compute_snapshot_deltas(business_id=business_id, days=days)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to compute insights: {str(e)}")
+
     if not rows:
         return {"business_id": str(business_id), "as_of": None, "insights": []}
 

@@ -31,7 +31,7 @@ class GoogleCollectorDisabled(Exception):
 def fetch_google_metrics_by_place_id(place_id: str, *, timeout_s: int = 10) -> Optional[GoogleMetrics]:
     api_key = getattr(settings, "GOOGLE_PLACES_API_KEY", None)
     if not api_key:
-        # Collector disabled in env
+        print("GOOGLE collector disabled: GOOGLE_PLACES_API_KEY missing")
         return None
 
     fields = getattr(settings, "GOOGLE_PLACES_FIELDS", "rating,user_ratings_total")
@@ -43,21 +43,36 @@ def fetch_google_metrics_by_place_id(place_id: str, *, timeout_s: int = 10) -> O
         "key": api_key,
     }
 
-    r = requests.get(url, params=params, timeout=timeout_s)
-    r.raise_for_status()
-    data = r.json()
+    print("GOOGLE METRICS REQUEST:", params)
+
+    try:
+        r = requests.get(url, params=params, timeout=timeout_s)
+        print("GOOGLE METRICS HTTP STATUS:", r.status_code)
+        r.raise_for_status()
+    except requests.RequestException as e:
+        print("GOOGLE METRICS REQUEST FAILED:", e)
+        return None
+
+    try:
+        data = r.json()
+    except ValueError as e:
+        print("GOOGLE METRICS JSON PARSE FAILED:", e)
+        print("GOOGLE METRICS RAW RESPONSE:", r.text)
+        return None
+
+    print("GOOGLE METRICS RESPONSE:", data)
 
     status = data.get("status")
     if status != "OK":
-        # Common statuses: ZERO_RESULTS, OVER_QUERY_LIMIT, REQUEST_DENIED, INVALID_REQUEST
-        # For MVP, just return None so the job continues.
+        print("GOOGLE METRICS NON-OK STATUS:", status)
+        if data.get("error_message"):
+            print("GOOGLE METRICS ERROR MESSAGE:", data.get("error_message"))
         return None
 
     result = data.get("result") or {}
     rating = result.get("rating")
     review_count = result.get("user_ratings_total")
 
-    # Normalize types
     try:
         rating_f = float(rating) if rating is not None else None
     except (TypeError, ValueError):
@@ -67,5 +82,7 @@ def fetch_google_metrics_by_place_id(place_id: str, *, timeout_s: int = 10) -> O
         review_i = int(review_count) if review_count is not None else None
     except (TypeError, ValueError):
         review_i = None
+
+    print("GOOGLE METRICS PARSED:", rating_f, review_i)
 
     return GoogleMetrics(rating=rating_f, review_count=review_i)
