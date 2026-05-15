@@ -7,10 +7,19 @@ from fastapi.responses import FileResponse
 from app.api.generated_reports import router as generated_reports_router
 from app.api.routes import router as api_router
 from app.core.db import close_pool
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="Local Competitor Intelligence (Phase 1)",
     version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # allow all for now (safe for MVP)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Allow the Vite dev server(s) to call the API from the browser
