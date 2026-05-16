@@ -197,6 +197,7 @@ def send_report_email(
     )
 
     try:
+        print(f"[EMAIL DEBUG] host={host} port={port} user={user} from={from_email} to={to_email} dry_run={dry_run} tls={use_tls}")
         with smtplib.SMTP(host, port, timeout=30) as smtp:
             smtp.ehlo()
             if use_tls:
