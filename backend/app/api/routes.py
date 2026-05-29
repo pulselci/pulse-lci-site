@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 import math
 import stripe
-from fastapi import APIRouter, HTTPException, Request, Header, Depends
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, Header, Depends
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
@@ -1696,10 +1696,10 @@ def _build_data_driven_execution_plan(sections: dict) -> list[dict]:
 # Header: x-admin-key: <ADMIN_API_KEY>
 # ---------------------------------------------------------------------------
 @router.post("/cron/collect-snapshots")
-def cron_collect_snapshots(request: Request):
+def cron_collect_snapshots(request: Request, background_tasks: BackgroundTasks):
     """
     Iterates over every active business and collects a fresh Google Places
-    snapshot for each competitor. Called by a Render cron job daily.
+    snapshot for each competitor. Runs in the background so it doesn't timeout.
     Protected by x-admin-key header matching ADMIN_API_KEY env var.
     """
     from app.core.config import settings
@@ -1722,21 +1722,18 @@ def cron_collect_snapshots(request: Request):
             )
             biz_rows = cur.fetchall()
 
-    results = []
-    for row in biz_rows:
-        biz_id = row["business_id"]
-        try:
-            result = collect_snapshots_for_business(biz_id)
-            results.append({
-                "business_id": str(biz_id),
-                "inserted": result.inserted,
-                "skipped": result.skipped_duplicates,
-            })
-        except Exception as exc:
-            logger.warning("cron snapshot failed for business_id=%s: %s", biz_id, exc)
-            results.append({"business_id": str(biz_id), "error": str(exc)})
+    biz_ids = [row["business_id"] for row in biz_rows]
 
-    return {"collected": len(results), "results": results}
+    def _run():
+        for biz_id in biz_ids:
+            try:
+                result = collect_snapshots_for_business(biz_id)
+                logger.info("snapshot ok business_id=%s inserted=%s", biz_id, result.inserted)
+            except Exception as exc:
+                logger.warning("cron snapshot failed for business_id=%s: %s", biz_id, exc)
+
+    background_tasks.add_task(_run)
+    return {"status": "started", "businesses": len(biz_ids)}
 
 
 # --------------------
