@@ -1718,7 +1718,6 @@ def cron_collect_snapshots(request: Request):
                 select distinct business_id
                 from public.competitors
                 where google_place_id is not null
-                  and is_active is not false
                 """
             )
             biz_rows = cur.fetchall()
