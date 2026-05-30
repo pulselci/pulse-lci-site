@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pulse LCI | Local Competitor Intelligence</title>
+  <style>
+    :root {
+      --navy: #10233f;
+      --blue: #2563eb;
+      --blue-dark: #1e40af;
+      --sky: #eff6ff;
+      --ink: #111827;
+      --muted: #64748b;
+      --line: #e5e7eb;
+      --card: #ffffff;
+      --bg: #f8fafc;
+      --green: #16a34a;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.5;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .container {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(248, 250, 252, 0.92);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+    }
+
+    .nav-inner {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--navy);
+      font-size: 20px;
+    }
+
+    .brand-mark {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--blue), #38bdf8);
+      color: white;
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      box-shadow: 0 12px 24px rgba(37, 99, 235, 0.22);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      color: #475569;
+      font-weight: 650;
+      font-size: 14px;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 12px 20px;
+      background: var(--blue);
+      color: white;
+      font-weight: 750;
+      box-shadow: 0 14px 30px rgba(37, 99, 235, 0.25);
+      transition: 0.18s ease;
+      border: 0;
+      cursor: pointer;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+      background: var(--blue-dark);
+    }
+
+    .button.secondary {
+      background: white;
+      color: var(--navy);
+      border: 1px solid var(--line);
+      box-shadow: none;
+    }
+
+    .hero {
+      padding: 78px 0 72px;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(37, 99, 235, 0.13), transparent 34%),
+        radial-gradient(circle at 85% 15%, rgba(14, 165, 233, 0.13), transparent 32%);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.02fr 0.98fr;
+      gap: 48px;
+      align-items: center;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      border-radius: 999px;
+      color: #1d4ed8;
+      font-weight: 800;
+      font-size: 13px;
+      margin-bottom: 18px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(42px, 6vw, 68px);
+      line-height: 0.98;
+      letter-spacing: -0.065em;
+      color: var(--navy);
+    }
+
+    .hero-copy {
+      margin: 22px 0 28px;
+      font-size: 20px;
+      color: #475569;
+      max-width: 620px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .microcopy {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .report-preview {
+      border-radius: 28px;
+      background: white;
+      padding: 18px;
+      border: 1px solid #dbeafe;
+      box-shadow: 0 28px 80px rgba(15, 23, 42, 0.12);
+      transform: rotate(1deg);
+    }
+
+    .report-window {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      overflow: hidden;
+      background: white;
+    }
+
+    .window-bar {
+      height: 44px;
+      background: #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .bubble {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #cbd5e1;
+    }
+
+    .report-body {
+      padding: 22px;
+    }
+
+    .report-title {
+      color: var(--navy);
+      font-size: 21px;
+      font-weight: 850;
+      margin-bottom: 14px;
+    }
+
+    .summary-card {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 18px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .summary-card strong {
+      display: block;
+      color: var(--navy);
+      margin-bottom: 6px;
+    }
+
+    .summary-card p,
+    .mini-card p {
+      margin: 0;
+      color: #475569;
+      font-size: 14px;
+    }
+
+    .mini-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .mini-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .mini-label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+    }
+
+    .chart-placeholder {
+      height: 126px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, #f8fafc, #eef2ff);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bar {
+      position: absolute;
+      bottom: 18px;
+      width: 30px;
+      border-radius: 8px 8px 0 0;
+      background: #93c5fd;
+    }
+
+    .bar:nth-child(1) { left: 28px; height: 50px; }
+    .bar:nth-child(2) { left: 74px; height: 78px; background: #2563eb; }
+    .bar:nth-child(3) { left: 120px; height: 60px; }
+    .bar:nth-child(4) { left: 166px; height: 92px; background: #1d4ed8; }
+    .bar:nth-child(5) { left: 212px; height: 42px; }
+
+    section {
+      padding: 82px 0;
+    }
+
+    .section-header {
+      max-width: 760px;
+      margin-bottom: 34px;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      color: var(--navy);
+      font-size: clamp(32px, 4vw, 48px);
+      line-height: 1.04;
+      letter-spacing: -0.045em;
+    }
+
+    .section-header p {
+      margin: 0;
+      color: #475569;
+      font-size: 18px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.05);
+    }
+
+    .icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: var(--sky);
+      color: var(--blue);
+      display: grid;
+      place-items: center;
+      font-weight: 900;
+      margin-bottom: 16px;
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      color: var(--navy);
+      font-size: 20px;
+      letter-spacing: -0.02em;
+    }
+
+    .card p,
+    .card li {
+      color: #475569;
+      margin: 0;
+    }
+
+    .card ul {
+      padding-left: 19px;
+      margin: 12px 0 0;
+    }
+
+    .product-strip {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 18px;
+    }
+
+    .screenshot-card {
+      min-height: 240px;
+      background: white;
+      border: 1px dashed #bfdbfe;
+      border-radius: 24px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .screenshot-card .placeholder {
+      height: 132px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #eff6ff, #f8fafc);
+      border: 1px solid #dbeafe;
+      display: grid;
+      place-items: center;
+      color: #64748b;
+      font-weight: 750;
+      text-align: center;
+      padding: 12px;
+    }
+
+    .screenshot-card h3 {
+      margin: 18px 0 5px;
+      color: var(--navy);
+    }
+
+
+    /* Premium screenshot modal */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      inset: 0;
+      padding: 56px 22px;
+      background: rgba(2, 6, 23, 0.88);
+      backdrop-filter: blur(8px);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.is-open {
+      display: flex;
+    }
+
+    .modal-content {
+      max-width: min(1120px, 94vw);
+      max-height: 86vh;
+      border-radius: 18px;
+      box-shadow: 0 28px 90px rgba(0,0,0,0.45);
+      background: white;
+    }
+
+    .modal-close {
+      position: fixed;
+      top: 22px;
+      right: 28px;
+      width: 46px;
+      height: 46px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.12);
+      color: white;
+      font-size: 32px;
+      line-height: 1;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      transition: 0.18s ease;
+    }
+
+    .modal-close:hover {
+      background: rgba(255,255,255,0.22);
+      transform: scale(1.04);
+    }
+
+    .screenshot-frame {
+      height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f8fafc;
+      border-radius: 18px;
+      overflow: hidden;
+      margin-bottom: 22px;
+      cursor: zoom-in;
+    }
+
+    .screenshot-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 14px;
+      transition: transform 0.18s ease;
+    }
+
+    .screenshot-frame:hover img {
+      transform: scale(1.02);
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 22px;
+      max-width: 820px;
+    }
+
+    .price-card {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 30px;
+      box-shadow: 0 16px 42px rgba(15, 23, 42, 0.06);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .price-card.featured {
+      border-color: #93c5fd;
+      box-shadow: 0 22px 62px rgba(37, 99, 235, 0.14);
+    }
+
+    .price-tag {
+      display: inline-flex;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-weight: 850;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    .price {
+      font-size: 46px;
+      font-weight: 900;
+      color: var(--navy);
+      letter-spacing: -0.05em;
+      margin: 12px 0;
+    }
+
+    .price span {
+      font-size: 17px;
+      color: var(--muted);
+      letter-spacing: 0;
+      font-weight: 700;
+    }
+
+    .lead-section {
+      padding: 88px 0;
+      background: var(--navy);
+      color: white;
+    }
+
+    .lead-grid {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 44px;
+      align-items: start;
+    }
+
+    .lead-section h2 {
+      color: white;
+    }
+
+    .lead-section p {
+      color: #cbd5e1;
+      font-size: 18px;
+    }
+
+    form {
+      background: white;
+      border-radius: 28px;
+      padding: 26px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
+    }
+
+    label {
+      display: block;
+      font-weight: 800;
+      color: #334155;
+      font-size: 13px;
+      margin-bottom: 7px;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
+      padding: 13px 14px;
+      font: inherit;
+      outline: none;
+      margin-bottom: 15px;
+    }
+
+    textarea {
+      min-height: 96px;
+      resize: vertical;
+    }
+
+    input:focus,
+    textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.11);
+    }
+
+    .form-note {
+      color: #64748b;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+
+    .form-success {
+      display: none;
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: #ecfdf5;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .form-error {
+      display: none;
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    footer {
+      padding: 28px 0;
+      color: #64748b;
+      font-size: 14px;
+      background: #ffffff;
+      border-top: 1px solid var(--line);
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 900px) {
+      .hero-grid,
+      .lead-grid,
+      .pricing-grid,
+      .cards,
+      .product-strip {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .hero {
+        padding-top: 52px;
+      }
+
+      .report-preview {
+        transform: none;
+      }
+    }
+
+    .screenshot-frame {
+      position: relative;
+      cursor: zoom-in;
+    }
+    .screenshot-frame img {
+      pointer-events: none;
+    }
+    .zoom-hint {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+    .screenshot-frame:hover .zoom-hint {
+      opacity: 1;
+    }
+    .zoom-hint-inner {
+      background: rgba(255,255,255,0.93);
+      border: 1px solid #bfdbfe;
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #1d4ed8;
+      box-shadow: 0 4px 16px rgba(15,23,42,0.12);
+    }
+    .screenshot-frame:hover img {
+      filter: brightness(0.88);
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="container nav-inner">
+      <a href="#top" class="brand">
+        <span class="brand-mark">P</span>
+        <span>Pulse LCI</span>
+      </a>
+      <div class="nav-links">
+        <a href="#what-you-get">What you get</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#free-report" class="button">Get a free report</a>
+      </div>
+    </div>
+  </nav>
+
+  <form name="free-report-request" method="POST" data-netlify="true" hidden>
+    <input type="hidden" name="form-name" value="free-report-request" />
+    <input name="name" />
+    <input name="email" />
+    <input name="business" />
+    <input name="location" />
+    <input name="competitor1" />
+    <input name="competitor2" />
+    <input name="competitor3" />
+  </form>
+
+
+  <main id="top">
+    <header class="hero">
+      <div class="container hero-grid">
+        <div>
+          <div class="eyebrow"><span class="dot"></span> Monthly local competitor intelligence</div>
+          <h1>See why competitors are getting chosen—and what to fix this month.</h1>
+          <p class="hero-copy">Pulse LCI analyzes your local competitors’ reviews, visibility, and customer feedback, then sends you a clear monthly action plan to help you win more customers.</p>
+          <div class="hero-actions">
+            <a href="#free-report" class="button">Get a free sample report</a>
+            <a href="#product" class="button secondary">See what’s inside</a>
+          </div>
+          <div class="microcopy">Built for local service businesses. No dashboards. No noise. Just clear next moves.</div>
+        </div>
+
+        <div class="report-preview" aria-label="Pulse LCI sample report preview">
+          <div class="report-window">
+            <div class="window-bar">
+              <span class="bubble"></span><span class="bubble"></span><span class="bubble"></span>
+            </div>
+            <div class="report-body">
+              <div class="report-title">Local Competitor Intelligence Report</div>
+              <div class="summary-card">
+                <strong>Executive Summary</strong>
+                <p>You are within striking distance, but the closest competitors are gaining reviews faster. This month should focus on review growth, positioning, and friction reduction.</p>
+              </div>
+              <div class="mini-grid">
+                <div class="mini-card">
+                  <div class="mini-label">This Month’s Focus</div>
+                  <p>Get 14 new reviews and highlight convenience across your top pages.</p>
+                </div>
+                <div class="mini-card">
+                  <div class="mini-label">Competitor Signal</div>
+                  <p>Two nearby competitors control most visible review share.</p>
+                </div>
+              </div>
+              <div class="chart-placeholder">
+                <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section>
+      <div class="container">
+        <div class="section-header">
+          <h2>Most local businesses are guessing. This removes the guesswork.</h2>
+          <p>You do not need more random marketing ideas. You need to know what is actually happening in your market and what deserves attention first.</p>
+        </div>
+        <div class="cards">
+          <div class="card">
+            <div class="icon">1</div>
+            <h3>Track competitors</h3>
+            <p>Monitor the businesses your customers compare you against online.</p>
+          </div>
+          <div class="card">
+            <div class="icon">2</div>
+            <h3>Find the gaps</h3>
+            <p>See where competitors are winning on reviews, visibility, and customer perception.</p>
+          </div>
+          <div class="card">
+            <div class="icon">3</div>
+            <h3>Know what to do</h3>
+            <p>Get a short monthly action plan focused on the highest-impact next moves.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="what-you-get" style="background: white;">
+      <div class="container">
+        <div class="section-header">
+          <h2>A monthly report built to drive action.</h2>
+          <p>If it does not tell you exactly what to do next, it does not belong in the report.</p>
+        </div>
+        <div class="cards">
+          <div class="card">
+            <div class="icon">✓</div>
+            <h3>Executive summary</h3>
+            <p>A clear read on your local position, market risk, and biggest opportunity this month.</p>
+          </div>
+          <div class="card">
+            <div class="icon">✓</div>
+            <h3>This Month’s Focus</h3>
+            <p>Your top three priorities, ranked by what matters most right now.</p>
+          </div>
+          <div class="card">
+            <div class="icon">✓</div>
+            <h3>Review momentum</h3>
+            <p>See who is gaining reviews, who is slowing down, and what pace you need to keep up.</p>
+          </div>
+          <div class="card">
+            <div class="icon">✓</div>
+            <h3>Customer perception</h3>
+            <p>Understand what customers praise, what they complain about, and where messaging should shift.</p>
+          </div>
+          <div class="card">
+            <div class="icon">✓</div>
+            <h3>Competitor context</h3>
+            <p>Know whether you are leading, chasing, or at risk of being passed.</p>
+          </div>
+          <div class="card">
+            <div class="icon">✓</div>
+            <h3>Next moves</h3>
+            <p>Simple execution steps your team can actually use this month.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="product">
+      <div class="container">
+        <div class="section-header">
+          <h2>See exactly what you receive.</h2>
+          <p>Each report shows where you stand, who is gaining ground, and what to do before the next report.</p>
+        </div>
+
+        <div class="product-strip">
+
+          <div class="screenshot-card">
+            <div class="screenshot-frame" onclick="openLightbox('executive-summary.png')">
+              <img src="executive-summary.png" alt="Pulse LCI executive summary screenshot" style="pointer-events:none;" />
+              <div class="zoom-hint" style="pointer-events:none;"><div class="zoom-hint-inner">&#128269; Click to expand</div></div>
+            </div>
+            <h3>Executive summary</h3>
+            <p>See exactly where you stand—and what it will take to stay ahead.</p>
+          </div>
+
+          <div class="screenshot-card">
+            <div class="screenshot-frame" onclick="openLightbox('review-chart.png')">
+              <img src="review-chart.png" alt="Pulse LCI review pulse screenshot" style="pointer-events:none;" />
+              <div class="zoom-hint" style="pointer-events:none;"><div class="zoom-hint-inner">&#128269; Click to expand</div></div>
+            </div>
+            <h3>Review pulse</h3>
+            <p>Track review momentum across you and nearby competitors.</p>
+          </div>
+
+          <div class="screenshot-card">
+            <div class="screenshot-frame" onclick="openLightbox('Execution-plan.png')">
+              <img src="Execution-plan.png" alt="Pulse LCI execution plan screenshot" style="pointer-events:none;" />
+              <div class="zoom-hint" style="pointer-events:none;"><div class="zoom-hint-inner">&#128269; Click to expand</div></div>
+            </div>
+            <h3>Execution plan</h3>
+            <p>Get clear, prioritized actions your team can execute this month.</p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <section style="background: white;">
+      <div class="container">
+        <div class="section-header">
+          <h2>Built for local service businesses.</h2>
+          <p>Pulse LCI works best when reputation, trust, and local visibility directly affect revenue.</p>
+        </div>
+        <div class="cards">
+          <div class="card"><h3>Dental &amp; medical</h3><p>Track review growth, local trust signals, and patient perception across your market.</p></div>
+          <div class="card"><h3>Med spas &amp; salons</h3><p>Monitor reputation, service positioning, and customer experience signals.</p></div>
+          <div class="card"><h3>Home services</h3><p>See how HVAC, plumbing, roofing, and repair competitors are gaining ground.</p></div>
+          <div class="card"><h3>Auto repair</h3><p>Understand which shops are winning on trust and reviews — and what they're doing differently.</p></div>
+          <div class="card"><h3>Restaurants &amp; hospitality</h3><p>Stay ahead of nearby competitors on reputation, review pace, and customer sentiment.</p></div>
+          <div class="card"><h3>Any local business</h3><p>If customers compare you against nearby competitors before choosing, Pulse LCI gives you the edge.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="pricing">
+      <div class="container">
+        <div class="section-header">
+          <h2>Simple, flat pricing.</h2>
+          <p>No complicated contracts. No bloated software. Just a useful report every month.</p>
+        </div>
+        <div class="pricing-grid">
+          <div class="price-card">
+            <div class="price-tag">Starter</div>
+            <h3>For focused local tracking</h3>
+            <div class="price">$99<span>/month</span></div>
+            <ul>
+              <li>Track up to 3 competitors</li>
+              <li>Monthly competitor report</li>
+              <li>Review and visibility insights</li>
+              <li>Action plan included</li>
+            </ul>
+          </div>
+          <div class="price-card featured">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+              <div class="price-tag" style="margin-bottom:0;">Growth</div>
+              <div style="display:inline-flex;padding:5px 10px;border-radius:999px;background:#2563eb;color:white;font-weight:850;font-size:12px;letter-spacing:0.03em;">Most Popular</div>
+            </div>
+            <h3>For more competitive markets</h3>
+            <div class="price">$179<span>/month</span></div>
+            <ul>
+              <li>Track up to 10 competitors</li>
+              <li>Monthly competitor report</li>
+              <li>Expanded market context</li>
+              <li>Action plan included</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="background:white;padding:52px 0;">
+      <div class="container">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;text-align:center;">
+          <div style="padding:24px;">
+            <div style="font-size:36px;font-weight:900;color:#10233f;letter-spacing:-0.04em;">Monthly</div>
+            <div style="color:#475569;font-size:15px;margin-top:4px;">Fresh data every month — no stale reports</div>
+          </div>
+          <div style="padding:24px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
+            <div style="font-size:36px;font-weight:900;color:#10233f;letter-spacing:-0.04em;">No login</div>
+            <div style="color:#475569;font-size:15px;margin-top:4px;">Your report shows up in your inbox. That's it.</div>
+          </div>
+          <div style="padding:24px;">
+            <div style="font-size:36px;font-weight:900;color:#10233f;letter-spacing:-0.04em;">Cancel anytime</div>
+            <div style="color:#475569;font-size:15px;margin-top:4px;">No annual contracts. No setup fees.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="free-report" class="lead-section">
+      <div class="container lead-grid">
+        <div>
+          <h2>Want to see how you stack up?</h2>
+          <p>Send your business and a few competitors. We will run a free sample report so you can see exactly what is working, what is changing, and what to fix first.</p>
+          <p><strong style="color:white;">Good fit if:</strong> customers compare you against nearby competitors before calling, booking, or requesting a quote.</p>
+        </div>
+
+        <form name="free-report-request" method="POST" data-netlify="true" netlify-honeypot="bot-field" id="reportForm">
+          <input type="hidden" name="form-name" value="free-report-request" />
+          <input type="hidden" name="subject" value="New Pulse LCI Free Report Request" />
+
+          <p class="hidden">
+            <label>Do not fill this out: <input name="bot-field" /></label>
+          </p>
+
+          <label for="name">Your name</label>
+          <input id="name" name="name" type="text" placeholder="Your name" required />
+
+          <label for="email">Work email</label>
+          <input id="email" name="email" type="email" placeholder="you@business.com" required />
+
+          <label for="phone">Phone number</label>
+          <input id="phone" name="phone" type="tel" placeholder="(555) 555-5555" />
+
+          <label for="business">Business name</label>
+          <input id="business" name="business" type="text" placeholder="Example Dental" required />
+
+          <label for="location">City / State</label>
+          <input id="location" name="location" type="text" placeholder="Cincinnati, OH" required />
+
+          <label for="competitor1">Competitor 1</label>
+          <input id="competitor1" name="competitor1" type="text" placeholder="Competitor business name" required />
+
+          <label for="competitor2">Competitor 2</label>
+          <input id="competitor2" name="competitor2" type="text" placeholder="Competitor business name" required />
+
+          <label for="competitor3">Competitor 3</label>
+          <input id="competitor3" name="competitor3" type="text" placeholder="Competitor business name" required />
+
+          <button class="button" type="submit" style="width:100%;" id="submitBtn">Request my free report</button>
+
+          <div id="successMessage" class="form-success" role="status" aria-live="polite">
+            ✅ Request received. We’ll review your market and follow up with your sample report.
+          </div>
+
+          <div id="errorMessage" class="form-error" role="alert">
+            Something went wrong. Please try again or email reports@pulselci.com.
+          </div>
+
+          <div class="form-note">Submit your business and 3 local competitors. We’ll review the market and follow up with a sample report.</div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <div>© 2026 Pulse LCI. Local Competitor Intelligence.</div>
+      <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
+        <a href="mailto:reports@pulselci.com" style="color:#64748b;">reports@pulselci.com</a>
+        <a href="/privacy.html" style="color:#64748b;">Privacy Policy</a>
+        <a href="/terms.html" style="color:#64748b;">Terms of Service</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Lightbox -->
+  <div id="lbOverlay" onclick="closeLightbox()" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(2,6,23,0.92);align-items:center;justify-content:center;padding:40px 20px;cursor:zoom-out;">
+    <img id="lbImg" src="" alt="" onclick="event.stopPropagation()" style="max-width:100%;max-height:90vh;border-radius:12px;box-shadow:0 28px 90px rgba(0,0,0,0.5);cursor:default;display:block;" />
+    <button onclick="closeLightbox()" style="position:fixed;top:18px;right:24px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;font-size:28px;width:44px;height:44px;border-radius:50%;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;">&times;</button>
+  </div>
+
+  <script>
+    function openLightbox(src) {
+      var o = document.getElementById('lbOverlay');
+      var img = document.getElementById('lbImg');
+      img.src = src;
+      o.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+    function closeLightbox() {
+      document.getElementById('lbOverlay').style.display = 'none';
+      document.getElementById('lbImg').src = '';
+      document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeLightbox();
+    });
+
+    const reportForm = document.getElementById("reportForm");
+    const submitBtn = document.getElementById("submitBtn");
+    const successMessage = document.getElementById("successMessage");
+    const errorMessage = document.getElementById("errorMessage");
+
+    function encodeFormData(formData) {
+      return new URLSearchParams(formData).toString();
+    }
+
+    reportForm.addEventListener("submit", function(event) {
+      event.preventDefault();
+
+      successMessage.style.display = "none";
+      errorMessage.style.display = "none";
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Submitting...";
+
+      const formData = new FormData(reportForm);
+
+      fetch("/", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: encodeFormData(formData)
+      })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Form submission failed");
+        }
+        reportForm.reset();
+        successMessage.style.display = "block";
+      })
+      .catch(() => {
+        errorMessage.style.display = "block";
+      })
+      .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Request my free report";
+      });
+    });
+  </script>
+
+</body>
+</html>
