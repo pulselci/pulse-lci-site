@@ -1,0 +1,571 @@
+# app/services/insights_service.py
+
+from __future__ import annotations
+
+from typing import Any, Dict, List, Optional
+
+
+def add_competitor_surge_insight(
+    sections: Dict[str, Any],
+    *,
+    min_review_delta: int = 3,
+    min_ratio: float = 2.0,
+    max_items: int = 2,
+) -> None:
+    """
+    Competitor Surge (deterministic):
+      - Reads rows from sections["momentum"] (we pass competitor_deltas from routes).
+      - Uses reviews_delta_7d (fallback reviews_delta_1d) as the "review delta".
+      - Computes market_avg_delta = sum(positive deltas) / competitor_count
+      - Flags competitors with delta >= min_review_delta AND delta/market_avg >= min_ratio
+      - Appends into sections["insights"] as:
+          {"type": "competitor_surge", "items": [ ... ]}
+      - Omits itself if no items qualify.
+    """
+    rows = sections.get("momentum") or []
+    if not isinstance(rows, list) or not rows:
+        return
+
+    def _get_delta(r: Dict[str, Any]) -> Optional[int]:
+        # Prefer explicit review_delta if present; otherwise snapshot delta keys.
+        for k in ("review_delta", "reviews_delta", "reviews_delta_7d", "reviews_delta_1d"):
+            if k in r and r.get(k) is not None:
+                try:
+                    return int(r.get(k))
+                except Exception:
+                    return None
+        return None
+
+    deltas: List[tuple[str, int]] = []
+    for r in rows:
+        if not isinstance(r, dict):
+            continue
+        name = (r.get("competitor_name") or r.get("name") or r.get("competitor") or "").strip()
+        if not name:
+            continue
+        d = _get_delta(r)
+        if d is None:
+            continue
+        deltas.append((name, d))
+
+    if not deltas:
+        return
+
+    competitor_count = len(deltas)
+    market_total_delta = sum(max(d, 0) for _, d in deltas)
+    if competitor_count <= 0 or market_total_delta <= 0:
+        return
+
+    market_avg = market_total_delta / competitor_count
+
+    hits: List[tuple[float, str, int]] = []
+    for name, d in deltas:
+        if d < min_review_delta:
+            continue
+        ratio = d / market_avg if market_avg > 0 else 0.0
+        if ratio >= min_ratio:
+            hits.append((ratio, name, d))
+
+    if not hits:
+        return
+
+    hits.sort(reverse=True)  # highest ratio first
+
+    out: List[Dict[str, Any]] = []
+    for ratio, name, d in hits[:max_items]:
+        out.append(
+            {
+                "competitor": name,
+                "review_delta": d,
+                "market_avg_delta": round(market_avg, 1),
+                "surge_ratio": round(ratio, 1),
+                "message": (
+                    f"YOU vs THEM: {name} is gaining reviews {round(ratio, 1)}× faster than the market this period. "
+                    "If you don't respond, they’ll widen the gap."
+                ),
+            }
+        )
+
+    insights = sections.get("insights")
+    if not isinstance(insights, list):
+        insights = []
+        sections["insights"] = insights
+
+    insights.append({"type": "competitor_surge", "items": out})
+
+
+def add_competitive_tier_pressure_insight(sections: Dict[str, Any]) -> None:
+    sov = (sections or {}).get("share_of_voice") or {}
+    rows = sov.get("rows") or []
+    if not isinstance(rows, list) or len(rows) < 3:
+        return
+
+    insights = sections.get("insights")
+    if not isinstance(insights, list):
+        insights = []
+        sections["insights"] = insights
+
+    if any(isinstance(x, dict) and x.get("type") == "competitive_tier_pressure" for x in insights):
+        return
+
+    # rows are already ranked
+    business = None
+    above = None
+    below = None
+
+    for i, r in enumerate(rows):
+        if r.get("is_business"):
+            business = r
+            if i > 0:
+                above = rows[i - 1]
+            if i < len(rows) - 1:
+                below = rows[i + 1]
+            break
+
+    if not business or not above or not below:
+        return
+
+    gap_to_above = int(above.get("reviews_total") or 0) - int(business.get("reviews_total") or 0)
+    gap_to_below = int(business.get("reviews_total") or 0) - int(below.get("reviews_total") or 0)
+
+    pressure_from = "below" if gap_to_below < gap_to_above else "above"
+
+    insights.append(
+        {
+            "type": "competitive_tier_pressure",
+            "severity": "info",
+            "summary": (
+                f"YOU vs THEM: {above.get('competitor_name')} is ahead by {gap_to_above} reviews. "
+                f"You're only {gap_to_below} reviews ahead of {below.get('competitor_name')}. "
+                f"Pressure is coming from {pressure_from} - protect your spot and chip away at the gap."
+            ),
+            "details": {
+                "business_reviews": int(business.get("reviews_total") or 0),
+                "above": {
+                    "name": above.get("competitor_name"),
+                    "reviews": int(above.get("reviews_total") or 0),
+                    "gap": gap_to_above,
+                },
+                "below": {
+                    "name": below.get("competitor_name"),
+                    "reviews": int(below.get("reviews_total") or 0),
+                    "gap": gap_to_below,
+                },
+                "pressure_from": pressure_from,
+            },
+        }
+    )
+
+
+def add_challenger_gap_insight(
+    sections: Dict[str, Any],
+    *,
+    min_gap_reviews: int = 25,
+) -> None:
+    """
+    Challenger Gap (deterministic):
+      - Uses share_of_voice rows (ranked) to compare #1 vs #2.
+      - Fires when leader_reviews - challenger_reviews >= min_gap_reviews.
+      - Severity: warning at >= 100 reviews gap, else info.
+      - Appends into sections["insights"] as a single object.
+      - Omits itself if insufficient rows, tie, or small gap.
+    """
+    sov = (sections or {}).get("share_of_voice") or {}
+    rows = sov.get("rows") or []
+    if not isinstance(rows, list) or len(rows) < 2:
+        return
+
+    leader, challenger = rows[0], rows[1]
+    if not isinstance(leader, dict) or not isinstance(challenger, dict):
+        return
+
+    gap = int(leader.get("reviews_total") or 0) - int(challenger.get("reviews_total") or 0)
+    if gap <= 0 or gap < int(min_gap_reviews):
+        return
+
+    severity = "warning" if gap >= 100 else "info"
+
+    insights = sections.get("insights")
+    if not isinstance(insights, list):
+        insights = []
+        sections["insights"] = insights
+
+    if any(isinstance(x, dict) and x.get("type") == "challenger_gap" for x in insights):
+        return
+
+    insights.append(
+        {
+            "type": "challenger_gap",
+            "severity": severity,
+            "summary": (
+                f"YOU vs THEM: {leader.get('competitor_name')} is leading the market by {gap} reviews over "
+                f"{challenger.get('competitor_name')}. If you want the #1 spot, you need to close that gap."
+            ),
+            "details": {
+                "leader_name": leader.get("competitor_name"),
+                "challenger_name": challenger.get("competitor_name"),
+                "gap_reviews": gap,
+                "leader_reviews_total": int(leader.get("reviews_total") or 0),
+                "challenger_reviews_total": int(challenger.get("reviews_total") or 0),
+                "leader_share_pct": float(leader.get("share_pct") or 0.0),
+                "challenger_share_pct": float(challenger.get("share_pct") or 0.0),
+                "thresholds": {"min_gap_reviews": int(min_gap_reviews), "warning_gap_reviews": 100},
+            },
+        }
+    )
+
+
+def add_leader_pulling_away_insight(
+    sections: Dict[str, Any],
+    *,
+    min_gap_widening: int = 5,
+    warning_gap_widening: int = 15,
+) -> None:
+    sov = (sections or {}).get("share_of_voice") or {}
+    rows = sov.get("rows") or []
+    if not isinstance(rows, list) or len(rows) < 2:
+        return
+
+    leader_name = (rows[0] or {}).get("competitor_name")
+    challenger_name = (rows[1] or {}).get("competitor_name")
+    if not leader_name or not challenger_name:
+        return
+
+    items = sections.get("momentum") or []  # in routes this is competitor_deltas
+    if not isinstance(items, list) or not items:
+        return
+
+    def _delta_for(name: str) -> Optional[int]:
+        for it in items:
+            if not isinstance(it, dict):
+                continue
+            n = (it.get("competitor_name") or it.get("name") or it.get("competitor") or "").strip()
+            if n != name:
+                continue
+            for k in ("reviews_delta_7d", "review_delta", "reviews_delta", "reviews_delta_1d"):
+                v = it.get(k)
+                if v is not None:
+                    try:
+                        return int(v)
+                    except Exception:
+                        return None
+        return None
+
+    leader_d7 = _delta_for(leader_name)
+    challenger_d7 = _delta_for(challenger_name)
+    if leader_d7 is None or challenger_d7 is None:
+        return
+
+    gap_change_7d = leader_d7 - challenger_d7
+    if gap_change_7d < int(min_gap_widening):
+        return
+
+    insights = sections.get("insights")
+    if not isinstance(insights, list):
+        insights = []
+        sections["insights"] = insights
+
+    if any(isinstance(x, dict) and x.get("type") == "leader_pulling_away" for x in insights):
+        return
+
+    severity = "warning" if gap_change_7d >= int(warning_gap_widening) else "info"
+    insights.append(
+        {
+            "type": "leader_pulling_away",
+            "severity": severity,
+            "summary": (
+                f"YOU vs THEM: {leader_name} widened the gap vs {challenger_name} by {gap_change_7d} reviews this week. "
+                "They’re pulling away - you’ll need extra review volume to keep pace."
+            ),
+            "details": {
+                "leader_name": leader_name,
+                "challenger_name": challenger_name,
+                "leader_reviews_delta_7d": int(leader_d7),
+                "challenger_reviews_delta_7d": int(challenger_d7),
+                "gap_change_7d": int(gap_change_7d),
+                "thresholds": {
+                    "min_gap_widening": int(min_gap_widening),
+                    "warning_gap_widening": int(warning_gap_widening),
+                },
+            },
+        }
+    )
+
+
+def add_market_quiet_insight(
+    sections: Dict[str, Any],
+    window_days: int = 7,
+) -> None:
+    """
+    Adds an insight when the market is flat: no competitor gained reviews in the window.
+    Deterministic and explainable.
+    Input: sections["momentum"] list (we're using it as a generic deltas list in routes.py)
+    Requires each item to have reviews_delta_7d (int-ish) and competitor_name.
+    Output: appends a single {type:"market_quiet", ...} into sections["insights"].
+    """
+    items = sections.get("momentum") or []
+    if not isinstance(items, list) or not items:
+        return
+
+    # Don't add if an insight already exists with the same type
+    insights = sections.get("insights") or []
+    if not isinstance(insights, list):
+        insights = []
+
+    if any(isinstance(x, dict) and x.get("type") == "market_quiet" for x in insights):
+        sections["insights"] = insights
+        return
+
+    # If competitor_surge already fired, skip (keeps UX tight)
+    if any(isinstance(x, dict) and x.get("type") == "competitor_surge" for x in insights):
+        sections["insights"] = insights
+        return
+
+    # Step 1: Suppress market_quiet when owner-centric insights exist
+    if any(
+        isinstance(x, dict)
+        and x.get("type") in ("competitive_tier_pressure", "challenger_gap", "leader_pulling_away")
+        for x in insights
+    ):
+        sections["insights"] = insights
+        return
+
+    deltas: List[int] = []
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        try:
+            deltas.append(int(it.get("reviews_delta_7d") or 0))
+        except Exception:
+            deltas.append(0)
+
+    if not deltas:
+        sections["insights"] = insights
+        return
+
+    if max(deltas) == 0:
+        insights.append(
+            {
+                "type": "market_quiet",
+                "window_days": int(window_days),
+                "competitor_count": int(len(items)),
+                "message": (
+                    f"YOU vs THEM: No one gained new reviews in the last {int(window_days)} days. "
+                    "This is your chance to create separation - push review requests this week."
+                ),
+                "inputs": {"max_reviews_delta_window": 0},
+            }
+        )
+
+    sections["insights"] = insights
+
+
+def suppress_market_quiet_if_owner_centric(sections: Dict[str, Any]) -> None:
+    """
+    Step 1: If any owner-centric insight exists, remove market_quiet.
+    This is order-independent (safe even if market_quiet is added earlier).
+    """
+    insights = (sections or {}).get("insights")
+    if not isinstance(insights, list) or not insights:
+        return
+
+    owner_centric = {"competitive_tier_pressure", "challenger_gap", "leader_pulling_away"}
+    types_now = {str(i.get("type", "")) for i in insights if isinstance(i, dict)}
+    if not (types_now & owner_centric):
+        return
+
+    sections["insights"] = [i for i in insights if not (isinstance(i, dict) and i.get("type") == "market_quiet")]
+
+
+def add_market_concentration_insight(sections: Dict[str, Any]) -> None:
+    sov = (sections or {}).get("share_of_voice") or {}
+    rows = sov.get("rows") or []
+    total = sov.get("market_total_reviews")
+
+    if total is None:
+        total = sum(
+            int((r or {}).get("reviews_total") or (r or {}).get("google_review_count") or 0)
+            for r in rows
+        )
+
+    if not rows or not total or total <= 0:
+        return
+
+    if any(isinstance(x, dict) and x.get("type") == "market_concentration" for x in sections.get("insights", [])):
+        return
+
+    ranked = sorted(
+        [
+            {
+                "name": (r.get("competitor_name") or r.get("name") or r.get("label") or "Unknown"),
+                "reviews": int((r or {}).get("reviews_total") or (r or {}).get("google_review_count") or 0),
+            }
+            for r in rows
+        ],
+        key=lambda x: x["reviews"],
+        reverse=True,
+    )
+
+    if len(ranked) < 2:
+        return
+
+    t1, t2 = ranked[0], ranked[1]
+    top1_share = t1["reviews"] / total
+    top2_share = (t1["reviews"] + t2["reviews"]) / total
+
+    if top1_share < 0.50 and top2_share < 0.70:
+        return
+
+    sections.setdefault("insights", []).append(
+        {
+            "type": "market_concentration",
+            "severity": "warning" if top2_share >= 0.80 else "info",
+            "summary": (
+                f"YOU vs THEM: The top 2 competitors control {round(top2_share * 100)}% of all reviews. "
+                "To win share, focus on stealing attention from the top players."
+            ),
+            "details": {
+                "market_total_reviews": total,
+                "top1": {"name": t1["name"], "reviews": t1["reviews"], "share": round(top1_share, 3)},
+                "top2": {"name": t2["name"], "reviews": t2["reviews"], "share": round(t2["reviews"] / total, 3)},
+                "top1_share": round(top1_share, 3),
+                "top2_share": round(top2_share, 3),
+                "thresholds": {"top1": 0.50, "top2": 0.70},
+            },
+        }
+    )
+
+
+def add_weekly_actions_insight(sections: Dict[str, Any]) -> None:
+    """
+    Step 3: Deterministic "What to do this week" recommendations.
+    Uses existing sections only (share_of_voice + top_moves/momentum deltas).
+    Output:
+      {"type":"weekly_actions","items":[...]}
+    """
+    insights = sections.get("insights")
+    if not isinstance(insights, list):
+        insights = []
+        sections["insights"] = insights
+
+    if any(isinstance(x, dict) and x.get("type") == "weekly_actions" for x in insights):
+        return
+
+    sov = (sections or {}).get("share_of_voice") or {}
+    rows = sov.get("rows") or []
+    if not isinstance(rows, list) or not rows:
+        return
+
+    business = None
+    above = None
+    below = None
+    for i, r in enumerate(rows):
+        if isinstance(r, dict) and r.get("is_business"):
+            business = r
+            if i > 0:
+                above = rows[i - 1]
+            if i < len(rows) - 1:
+                below = rows[i + 1]
+            break
+
+    if not business:
+        return
+
+    biz_reviews = int(business.get("reviews_total") or 0)
+
+    deltas_list = sections.get("top_moves") or sections.get("momentum") or []
+    d7_map: Dict[str, int] = {}
+    if isinstance(deltas_list, list):
+        for it in deltas_list:
+            if not isinstance(it, dict):
+                continue
+            name = (it.get("competitor_name") or it.get("name") or it.get("competitor") or "").strip()
+            if not name:
+                continue
+            v = it.get("reviews_delta_7d")
+            if v is None:
+                v = it.get("review_delta") or it.get("reviews_delta") or it.get("reviews_delta_1d") or 0
+            try:
+                d7_map[name] = int(v)
+            except Exception:
+                d7_map[name] = 0
+
+    items: List[Dict[str, Any]] = []
+
+    if any(isinstance(x, dict) and x.get("type") == "market_quiet" for x in insights):
+        items.append(
+            {
+                "title": "Push review requests (market is quiet)",
+                "why": "No competitors gained reviews recently. A small push can create separation fast.",
+                "metric": "Target: +5 reviews this week",
+                "severity": "high",
+            }
+        )
+
+    if isinstance(above, dict):
+        above_name = above.get("competitor_name") or "the competitor above you"
+        above_reviews = int(above.get("reviews_total") or 0)
+        gap_to_above = above_reviews - biz_reviews
+        if gap_to_above > 0:
+            target = min(25, max(5, int(round(gap_to_above * 0.10))))
+            items.append(
+                {
+                    "title": f"Close the gap vs {above_name}",
+                    "why": f"You're behind by {gap_to_above} reviews. Weekly gains compound into rank movement.",
+                    "metric": f"Target: +{target} reviews this week",
+                    "severity": "medium",
+                }
+            )
+
+    if isinstance(below, dict):
+        below_name = below.get("competitor_name") or "the competitor below you"
+        below_reviews = int(below.get("reviews_total") or 0)
+        gap_to_below = biz_reviews - below_reviews
+        if 0 <= gap_to_below <= 50:
+            items.append(
+                {
+                    "title": f"Defend your spot vs {below_name}",
+                    "why": f"You're only {gap_to_below} reviews ahead. A small competitor push could flip ranks.",
+                    "metric": "Target: maintain +3 to +5 reviews/week",
+                    "severity": "high" if gap_to_below <= 15 else "medium",
+                }
+            )
+
+    if any(isinstance(x, dict) and x.get("type") == "competitor_surge" for x in insights):
+        items.append(
+            {
+                "title": "Respond to competitor surge",
+                "why": "A competitor is outpacing the market in new reviews. You need extra review volume to keep pace.",
+                "metric": "Target: +5 reviews above your normal weekly pace",
+                "severity": "high",
+            }
+        )
+    else:
+        max_name = None
+        max_d7 = 0
+        for n, d in d7_map.items():
+            if d > max_d7:
+                max_d7 = d
+                max_name = n
+        if max_name and max_d7 >= 3:
+            items.append(
+                {
+                    "title": f"Watch {max_name}'s review pace",
+                    "why": f"{max_name} added {max_d7} reviews in the last 7 days. If you stay flat, they widen the gap.",
+                    "metric": "Target: match or beat their weekly review pace",
+                    "severity": "medium",
+                }
+            )
+
+    items.append(
+        {
+            "title": "Ask every happy customer for a review (simple system)",
+            "why": "Reviews are the biggest lever in this report. Consistency beats one-off pushes.",
+            "metric": "Process: 10 asks/day via text link",
+            "severity": "low",
+        }
+    )
+
+    items = items[:4]
+
+    insights.append({"type": "weekly_actions", "items": items})

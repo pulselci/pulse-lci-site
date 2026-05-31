@@ -198,4 +198,40 @@ def onboard_prospect(
             except Exception as exc:
                 logger.warning("Could not mark report as free preview: %s", exc)
 
-        # ---------------------
+        # ------------------------------------------------------------------
+        # 8. Email the report
+        # ------------------------------------------------------------------
+        if report_id and contact_email:
+            try:
+                from app.api.generated_reports import send_generated_report_email, SendReportRequest
+
+                send_generated_report_email(
+                    UUID(report_id),
+                    SendReportRequest(
+                        to_email=contact_email,
+                        subject=f"Your Free Competitive Intelligence Report — {business_name}",
+                        body_text=(
+                            f"Hi {contact_name},\n\n"
+                            "Attached is your free local competitor intelligence report. "
+                            "It covers your current competitive position, review standings, "
+                            "and the key opportunities we spotted in your market.\n\n"
+                            "This is your baseline report. Each month you'll receive an updated "
+                            "report showing exactly how your market is shifting.\n\n"
+                            "Reply to this email if you have any questions.\n\n"
+                            "— Pulse LCI"
+                        ),
+                    ),
+                )
+                logger.info("Report emailed to %s for business %s", contact_email, business_id)
+            except Exception as exc:
+                logger.error("Email send failed for %s: %s", business_id, exc)
+
+        return OnboardingResult(
+            ok=True,
+            business_id=str(business_id),
+            report_id=report_id,
+        )
+
+    except Exception as exc:
+        logger.exception("Prospect onboarding failed for %r: %s", business_name, exc)
+        return OnboardingResult(ok=False, error=str(exc))

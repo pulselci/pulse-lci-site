@@ -2508,11 +2508,14 @@ def generate_business_report(
         except Exception:
             schedule_meta = None
 
+        # Determine if this is a free-preview prospect (schedule exists but is disabled)
+        is_free_preview = False
         if isinstance(schedule_meta, dict) and schedule_meta.get("id"):
             try:
                 schedule_id = UUID(str(schedule_meta["id"]))
             except Exception:
                 schedule_id = UUID("00000000-0000-0000-0000-000000000000")
+            is_free_preview = not bool(schedule_meta.get("is_enabled", True))
 
         raw = compute_snapshot_deltas(business_id=business_id, days=days)
 
@@ -2962,4 +2965,379 @@ def generate_business_report(
 
                     dedupe_key = (
                         ri.get("type"),
-                        (ri.get("details") or {}).get("competitor_id"
+                        (ri.get("details") or {}).get("competitor_id"),
+                        ri.get("summary"),
+                    )
+                    if dedupe_key in existing_review_types:
+                        continue
+
+                    insights.append(ri)
+                    existing_review_types.add(dedupe_key)
+
+                customer_perception_text = format_insights_for_report(
+                    review_insights,
+                    owner_name=business_name,
+                ) or ""
+        except Exception as e:
+            logger.warning("review insights skipped: %s", e)
+
+        sections = {
+            "top_moves": top_moves,
+            "insights": insights,
+            "momentum": momentum_items,
+            "velocity_trends": velocity_trends,
+            "threats": threats,
+            "share_of_voice": share_of_voice,
+            "customer_perception_insights": {
+                "title": "Customer Perception Insights",
+                "body": customer_perception_text,
+            },
+            "is_free_preview": is_free_preview,
+        }
+
+        if not customer_perception_text:
+            customer_perception_text = (
+                "Recent customer review signals show where competitors are gaining trust, "
+                "where friction is appearing, and which themes should shape this month’s positioning. "
+                "Use these signals to tighten messaging, improve weak spots, and reinforce the strongest reasons customers choose you."
+            )
+
+        if not any(isinstance(i, dict) and i.get("type") == "customer_perception" for i in insights):
+            insights.append({
+                "type": "customer_perception",
+                "summary": customer_perception_text,
+                "severity": "info",
+                "details": {
+                    "source": "fallback_customer_perception",
+                },
+            })
+
+        suppress_market_quiet_if_owner_centric(sections)
+        add_weekly_actions_insight(sections)
+
+        insights = sections.get("insights") if isinstance(sections.get("insights"), list) else []
+        sections["insights"] = insights
+
+        try:
+            friction_reviews = get_review_rows_for_business(str(business_id)) or []
+
+            friction_counts = build_review_theme_counts(
+                friction_reviews,
+                owner_competitor_id=str(owner_competitor_id) if owner_competitor_id else None,
+            )
+
+            friction_insights = build_customer_friction_insights(friction_counts)
+            friction_summary = build_customer_friction_summary(
+                friction_counts,
+                friction_insights,
+            )
+
+            sections["customer_friction_signals"] = {
+                "title": "Customer Friction Signals",
+                "subtitle": "Repeated complaint themes found in negative review text.",
+                "summary": friction_summary,
+                "themes": friction_counts.get("themes") or [],
+                "competitors": friction_counts.get("competitors") or [],
+                "owner_top_themes": friction_counts.get("owner_top_themes") or [],
+                "insights": friction_insights,
+            }
+
+            themes = (sections.get("customer_friction_signals") or {}).get("themes") or []
+
+            # Only use friction themes to build perception text if review insights
+            # didn't already produce something meaningful.
+            if not customer_perception_text and themes:
+                # Pick the theme with the highest market_total, not the first in the list
+                active_themes = [t for t in themes if isinstance(t, dict) and int(t.get("market_total") or 0) > 0]
+                top_theme = max(active_themes, key=lambda t: int(t.get("market_total") or 0)) if active_themes else None
+
+                if top_theme:
+                    theme_label = top_theme.get("theme_label") or top_theme.get("theme_key")
+                    leader_name = top_theme.get("leader_competitor_name")
+                    customer_perception_text = (
+                        f"Customer feedback in this market is primarily driven by {str(theme_label).lower()}. "
+                        f"{leader_name or 'A leading competitor'} is currently the most visible competitor in this area. "
+                        "Strengthening your positioning around this theme can improve conversion and reinforce competitive advantage."
+                    )
+                else:
+                    customer_perception_text = (
+                        "No dominant customer perception theme emerged this period. "
+                        "This creates an opportunity to differentiate by owning a key experience area such as speed, communication, or convenience."
+                    )
+
+                sections["customer_perception_insights"]["body"] = customer_perception_text
+
+            elif customer_perception_text:
+                # Review insights produced real text — persist it into the section
+                sections["customer_perception_insights"]["body"] = customer_perception_text
+
+        except Exception as e:
+            logger.warning("customer friction signals skipped: %s", e)
+            sections["customer_friction_signals"] = {
+                "title": "Customer Friction Signals",
+                "subtitle": "Repeated complaint themes found in negative review text.",
+                "summary": "Customer friction signals were not available for this report.",
+                "themes": [],
+                "competitors": [],
+                "owner_top_themes": [],
+                "insights": [],
+            }
+            # Ensure perception body is always populated, even if the friction block failed
+            if not sections.get("customer_perception_insights", {}).get("body"):
+                sections["customer_perception_insights"]["body"] = customer_perception_text
+
+
+        previous_insights = []
+        if isinstance(prev_sections, dict):
+            previous_insights = prev_sections.get("insights") or []
+
+            sections["report_experience"] = _build_report_experience_payload(
+            insights,
+            previous_insights=previous_insights,
+            sections=sections,
+        )
+
+        if not sections.get("report_experience"):
+            sections["report_experience"] = {}
+
+        # ── Data-driven Execution Plan ─────────────────────────────────────
+        # Build 3 concrete action items from real numbers rather than
+        # relying on the generic presentation-layer output.
+        focus = _build_data_driven_execution_plan(sections)
+        print("[EXEC_PLAN] generated", len(focus), "items:", [f.get("action", "")[:60] for f in focus])
+
+        if not focus:
+            focus = sections["report_experience"].get("this_month_focus") or insights[:3]
+
+        if not focus:
+            focus = [
+                {
+                    "type": "fallback_focus",
+                    "summary": "Maintain review momentum and watch competitor movement this month.",
+                    "severity": "info",
+                    "details": {},
+                }
+            ]
+
+        sections["report_experience"]["this_month_focus"] = focus
+
+        if not sections["report_experience"].get("immediate_priorities"):
+            sections["report_experience"]["immediate_priorities"] = len(focus[:3]) or 1
+
+        sections["share_of_voice_donut"] = _build_share_of_voice_donut_payload(sections)
+        sections["review_count_bar"] = _build_review_count_bar_payload(sections)
+        sections["review_pulse"] = _build_review_pulse_payload(business_id)
+        premium_headline = build_executive_headline(sections)
+
+        if sections.get("report_experience"):
+            sections["report_experience"]["summary_text"] = premium_headline
+
+        owner_row = next((r for r in (share_of_voice.get("rows") or []) if r.get("is_business")), None)
+        sections["business_name"] = (
+            (owner_row or {}).get("competitor_name")
+            or (owner_row or {}).get("name")
+            or "Client"
+        )
+
+        summary_text = premium_headline
+
+        # ── Customer label normalisation ────────────────────────────────────
+        # Replace every occurrence of "patients" (and "patient") with the
+        # business-specific customer label so the report reads naturally for
+        # non-healthcare businesses (e.g. "customers" for auto repair).
+        if customer_label and customer_label.lower() not in ("patients", "patient"):
+            import json as _json2
+
+            def _replace_patient_terms(text: str, label: str) -> str:
+                if not text:
+                    return text
+                label_pl = label          # plural  (e.g. "customers")
+                label_sg = label.rstrip("s") if label.endswith("s") else label  # singular
+                # Replace plural first (order matters)
+                text = text.replace("patients", label_pl)
+                text = text.replace("Patients", label_pl.capitalize())
+                text = text.replace("patient", label_sg)
+                text = text.replace("Patient", label_sg.capitalize())
+                return text
+
+            def _walk_and_replace(obj, label):
+                if isinstance(obj, str):
+                    return _replace_patient_terms(obj, label)
+                if isinstance(obj, dict):
+                    return {k: _walk_and_replace(v, label) for k, v in obj.items()}
+                if isinstance(obj, list):
+                    return [_walk_and_replace(i, label) for i in obj]
+                return obj
+
+            sections = _walk_and_replace(sections, customer_label)
+            summary_text = _replace_patient_terms(summary_text or "", customer_label)
+
+        print("\n=== REPORT DEBUG ===")
+        print("competitor_deltas:", len(competitor_deltas))
+        print("insights:", len(sections.get("insights", [])))
+        print("money_insights:", len([i for i in sections.get("insights", []) if i.get("type") == "money"]))
+        print("review_insights:", len([i for i in sections.get("insights", []) if i.get("type") == "review"]))
+        print("customer_friction:", len((sections.get("customer_friction_signals") or {}).get("insights", [])))
+        print("this_month_focus:", len((sections.get("report_experience") or {}).get("this_month_focus", [])))
+        print("review_pulse:", bool(sections.get("review_pulse")))
+        print("====================\n")
+
+        created_any = insert_generated_report(
+            business_id=business_id,
+            schedule_id=schedule_id,
+            period_start=period_start,
+            period_end=period_end,
+            status="generated",
+            title=title,
+            summary_text=summary_text,
+            sections=sections,
+            inputs={
+                "source": "compute_snapshot_deltas",
+                "days": days,
+                "as_of": as_of,
+                "count": len(competitor_deltas),
+                "schedule": schedule_meta,
+            },
+            error=None,
+        )
+
+        created = _as_dict(created_any)
+        created_id_val = created.get("id")
+
+        try:
+            created_id = UUID(str(created_id_val)) if created_id_val else None
+        except Exception:
+            created_id = None
+
+        # ✅ Step 5/6: compare PREVIOUS (pre-insert) vs THIS new report
+        if prev_sections and isinstance(prev_sections, dict) and isinstance(sections, dict) and created_id:
+            pc = build_position_change_insight(prev_sections, sections)
+
+            mm = build_market_movers_insight(
+                prev_sections,
+                sections,
+                min_share_delta_pp=0.1,
+                min_review_delta=1,
+            )
+
+            if not pc and not mm:
+                owner_name_for_flat = business_name
+                owner_rank = None
+
+                try:
+                    sov = sections.get("share_of_voice") or {}
+                    rows = sov.get("rows") or []
+
+                    for i, r in enumerate(rows):
+                        name = r.get("name") or r.get("competitor_name")
+                        if (
+                            name
+                            and owner_name_for_flat
+                            and str(name).strip().lower() == str(owner_name_for_flat).strip().lower()
+                        ):
+                            owner_rank = i + 1
+                            break
+                except Exception:
+                    owner_rank = None
+
+                if owner_rank:
+                    summary = f"Market was mostly flat versus the prior report. {owner_name_for_flat} held position #{owner_rank}."
+                else:
+                    summary = "Market was mostly flat versus the prior report."
+
+                mm = {
+                    "type": "market_movers",
+                    "summary": summary,
+                    "details": {
+                        "flat_comparison": True,
+                        "owner_rank": owner_rank,
+                    },
+                    "severity": "info",
+                }
+
+            previous_insights = []
+            if isinstance(prev_sections, dict):
+                previous_insights = prev_sections.get("insights") or []
+
+            if pc:
+                created.setdefault("sections", {}).setdefault("insights", []).append(pc)
+                created["sections"]["report_experience"] = _build_report_experience_payload(
+                    created["sections"].get("insights"),
+                    previous_insights=previous_insights,
+                    sections=created.get("sections") or {},
+                )
+                _append_insight_to_report_in_db(
+                    created_id,
+                    pc,
+                    previous_insights=previous_insights,
+                )
+
+            if mm:
+                created.setdefault("sections", {}).setdefault("insights", []).append(mm)
+                created["sections"]["report_experience"] = _build_report_experience_payload(
+                    created["sections"].get("insights"),
+                    previous_insights=previous_insights,
+                    sections=created.get("sections") or {},
+                )
+                _append_insight_to_report_in_db(
+                    created_id,
+                    mm,
+                    previous_insights=previous_insights,
+                )
+
+        sections = created.get("sections") or {}
+
+        if not sections.get("report_experience"):
+            sections["report_experience"] = {}
+
+        # ── Re-apply data-driven execution plan after Step 5/6 rebuilds report_experience ──
+        final_focus = _build_data_driven_execution_plan(sections)
+        if not final_focus:
+            final_focus = sections["report_experience"].get("this_month_focus") or []
+        if not final_focus:
+            final_focus = [{
+                "type": "fallback_focus",
+                "summary": "Set a clear monthly review-growth target, improve your positioning against top competitors, and track whether you are closing the gap.",
+                "priority": "Immediate"
+            }]
+
+        # Patch just this_month_focus in the DB — read current saved sections,
+        # update only the execution plan, write back. Avoids overwriting the
+        # good report_experience cards built by _append_insight_to_report_in_db.
+        try:
+            import json as _json
+            with get_conn() as _conn:
+                with _conn.cursor() as _cur:
+                    _cur.execute(
+                        "SELECT sections FROM generated_reports WHERE id = %s",
+                        (str(created_id),),
+                    )
+                    _saved = _cur.fetchone()
+
+                if _saved:
+                    _saved_sections = _saved["sections"]
+                    if isinstance(_saved_sections, str):
+                        _saved_sections = _json.loads(_saved_sections)
+                    if isinstance(_saved_sections, dict):
+                        if "report_experience" not in _saved_sections:
+                            _saved_sections["report_experience"] = {}
+                        _saved_sections["report_experience"]["this_month_focus"] = final_focus[:3]
+                        _saved_sections["report_experience"]["immediate_priorities"] = len(final_focus[:3]) or 1
+                        with get_conn() as _conn2:
+                            with _conn2.cursor() as _cur2:
+                                _cur2.execute(
+                                    "UPDATE generated_reports SET sections = %s WHERE id = %s",
+                                    (_json.dumps(_saved_sections), str(created_id)),
+                                )
+                            _conn2.commit()
+                        created["sections"] = _saved_sections
+                        sections = _saved_sections
+        except Exception as _e:
+            logger.warning("failed to persist final execution plan to DB: %s", _e)
+
+        return created
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate report: {str(e)}")

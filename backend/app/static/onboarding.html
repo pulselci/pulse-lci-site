@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>LCI Client Onboarding</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 24px;
+      background: #f7f7f9;
+      color: #222;
+    }
+
+    h1, h2, h3 {
+      margin-bottom: 8px;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 18px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .grid-1 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 12px;
+      border: 1px solid #bbb;
+      border-radius: 8px;
+      font-size: 14px;
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 10px 14px;
+      border: 0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .btn-primary {
+      background: #1f6feb;
+      color: white;
+    }
+
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #111;
+    }
+
+    .btn-danger {
+      background: #dc2626;
+      color: white;
+    }
+
+    .inline-check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .inline-check input {
+      width: auto;
+    }
+
+    pre {
+      background: #111827;
+      color: #f9fafb;
+      padding: 14px;
+      border-radius: 8px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .muted {
+      color: #666;
+      font-size: 13px;
+    }
+
+    .competitor-card, .email-card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+      background: #fafafa;
+    }
+  </style>
+</head>
+<body>
+  <h1>LCI Client Onboarding</h1>
+  <p class="muted">Internal admin form for setting up a new client in one step.</p>
+
+  <form id="onboardingForm">
+    <div class="card">
+      <h2>Saved Form Tools</h2>
+      <div class="row-actions">
+        <button type="button" class="btn-secondary" onclick="clearSavedForm()">Clear Form</button>
+
+        <select id="savedProfiles" onchange="loadSavedProfile()" style="max-width: 360px;">
+          <option value="">Load previous client...</option>
+        </select>
+
+        <button type="button" class="btn-primary" onclick="generateReportForSelectedBusiness()">
+          Generate Report for Selected Client
+        </button>
+
+        <button type="button" class="btn-secondary" onclick="openLatestReport()">
+          Open Latest Report
+        </button>
+
+        <button type="button" class="btn-primary" onclick="sendLatestReportForSelectedBusiness()">
+          Send Latest Report
+        </button>
+      </div>
+      <p class="muted">Form values autosave in this browser and remain after refresh.</p>
+    </div>
+
+    <div style="background:#1a1a2e;padding:12px 20px;margin-bottom:24px;border-radius:6px;display:flex;align-items:center;gap:12px;">
+      <label for="admin-key-input" style="color:#aaa;font-size:13px;white-space:nowrap;">Admin Key</label>
+      <input
+        id="admin-key-input"
+        type="password"
+        placeholder="Enter admin key"
+        style="flex:1;padding:8px 12px;border:1px solid #444;border-radius:4px;background:#0d0d1a;color:#fff;font-size:13px;"
+        autocomplete="off"
+        onchange="loadHistoryDropdown()"
+        onblur="loadHistoryDropdown()"
+      />
+    </div>
+
+    <div class="card">
+      <h2>Client Business Info</h2>
+      <div class="grid">
+        <div>
+          <label for="business_name">Business Name</label>
+          <input id="business_name" required />
+        </div>
+        <div>
+          <label for="primary_domain">Primary Domain</label>
+          <input id="primary_domain" placeholder="example.com" />
+        </div>
+        <div>
+          <label for="website_url">Website URL</label>
+          <input id="website_url" placeholder="https://example.com" />
+        </div>
+        <div>
+          <label for="city">City</label>
+          <input id="city" />
+        </div>
+        <div>
+          <label for="state">State</label>
+          <input id="state" />
+        </div>
+        <div>
+          <label for="country">Country</label>
+          <input id="country" value="US" />
+        </div>
+        <div>
+          <label for="google_place_id">Google Place ID</label>
+          <input id="google_place_id" />
+        </div>
+        <div>
+          <label for="google_maps_url">Google Maps URL</label>
+          <input id="google_maps_url" />
+        </div>
+      </div>
+
+      <div class="grid-1" style="margin-top:12px;">
+        <div>
+          <label for="customer_label">What do you call your customers?</label>
+          <select id="customer_label">
+            <option value="customers" selected>Customers</option>
+            <option value="patients">Patients</option>
+            <option value="clients">Clients</option>
+            <option value="guests">Guests</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="notes">Notes</label>
+          <textarea id="notes"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Competitors</h2>
+      <p class="muted">Add 3–5 competitors.</p>
+      <div id="competitorsContainer"></div>
+      <div class="row-actions">
+        <button type="button" class="btn-secondary" onclick="addCompetitor()">Add Competitor</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Recipient Emails</h2>
+      <div id="emailsContainer"></div>
+      <div class="row-actions">
+        <button type="button" class="btn-secondary" onclick="addEmail()">Add Email</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Schedule + Actions</h2>
+      <div class="grid">
+        <div>
+          <label for="schedule_hour">Schedule Hour</label>
+          <input id="schedule_hour" type="number" min="0" max="23" value="9" />
+        </div>
+        <div>
+          <label for="schedule_minute">Schedule Minute</label>
+          <input id="schedule_minute" type="number" min="0" max="59" value="0" />
+        </div>
+        <div>
+          <label for="schedule_timezone">Schedule Timezone</label>
+          <input id="schedule_timezone" value="America/New_York" />
+        </div>
+      </div>
+
+      <label for="billing_mode">Billing Mode</label>
+      <select id="billing_mode">
+        <option value="free_preview" selected>Free Preview</option>
+        <option value="paid_now">Paid Now</option>
+      </select>
+
+      <label class="inline-check">
+        <input id="send_checkout_email" type="checkbox" />
+        Email checkout link to recipients
+      </label>
+
+      <label class="inline-check">
+        <input id="auto_generate_first_report" type="checkbox" />
+        Generate first report immediately
+      </label>
+
+      <label class="inline-check">
+        <input id="run_initial_collection" type="checkbox" />
+        Run initial data collection before report
+      </label>
+
+      <label class="inline-check">
+        <input id="send_first_report" type="checkbox" />
+        Email first report to recipients
+      </label>
+    </div>
+
+    <div class="row-actions">
+      <button type="submit" class="btn-primary">Submit Onboarding</button>
+      <button type="button" class="btn-secondary" onclick="seedDefaults()">Seed Example Rows</button>
+    </div>
+  </form>
+
+  <div class="card">
+    <h2>Response</h2>
+    <pre id="result">No submission yet.</pre>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "lci_onboarding_current";
+    const API_BASE = window.PULSE_API_BASE || (window.location.hostname === "localhost" ? "http://localhost:8000" : window.location.origin);
+    // Admin key is entered by the user, not stored in code.
+    // The key is read from the #admin-key-input field at runtime.
+    let ADMIN_KEY = "";
+
+    let selectedBusinessId = null;
+    let latestGeneratedReportId = null;
+
+    function authHeaders(extra = {}) {
+      ADMIN_KEY = (document.getElementById("admin-key-input")?.value || "").trim();
+      if (!ADMIN_KEY) {
+        alert("Please enter your admin key first.");
+        throw new Error("Admin key not set");
+      }
+      return { "x-admin-key": ADMIN_KEY, ...extra };
+    }
+
+    function competitorTemplate(index) {
+      return `
+        <div class="competitor-card" data-index="${index}">
+          <h3>Competitor ${index + 1}</h3>
+          <div class="grid">
+            <div>
+              <label>Name</label>
+              <input class="comp-name" required />
+            </div>
+            <div>
+              <label>Website URL</label>
+              <input class="comp-website" placeholder="https://example.com" />
+            </div>
+            <div>
+              <label>Google Place ID</label>
+              <input class="comp-place-id" />
+            </div>
+            <div>
+              <label>Google Maps URL</label>
+              <input class="comp-maps-url" />
+            </div>
+          </div>
+          <div class="row-actions">
+            <button type="button" class="btn-danger" onclick="removeBlock(this)">Remove</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function emailTemplate(index) {
+      return `
+        <div class="email-card" data-index="${index}">
+          <div class="grid">
+            <div>
+              <label>Email ${index + 1}</label>
+              <input class="recipient-email" type="email" required />
+            </div>
+          </div>
+          <div class="row-actions">
+            <button type="button" class="btn-danger" onclick="removeBlock(this)">Remove</button>
+          </div>
+        </div>
+      `;
+    }
+
+    async function parseResponse(response) {
+      const text = await response.text();
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = text;
+      }
+
+      return data;
+    }
+
+    function addCompetitor(data = null) {
+      const container = document.getElementById("competitorsContainer");
+      const index = container.children.length;
+      container.insertAdjacentHTML("beforeend", competitorTemplate(index));
+
+      const card = container.lastElementChild;
+      if (data) {
+        card.querySelector(".comp-name").value = data.name || "";
+        card.querySelector(".comp-website").value = data.website_url || "";
+        card.querySelector(".comp-place-id").value = data.google_place_id || "";
+        card.querySelector(".comp-maps-url").value = data.google_maps_url || "";
+      }
+
+      attachAutosaveListeners();
+    }
+
+    function addEmail(value = "") {
+      const container = document.getElementById("emailsContainer");
+      const index = container.children.length;
+      container.insertAdjacentHTML("beforeend", emailTemplate(index));
+
+      const card = container.lastElementChild;
+      card.querySelector(".recipient-email").value = value || "";
+
+      attachAutosaveListeners();
+    }
+
+    function removeBlock(button) {
+      const card = button.closest(".competitor-card, .email-card");
+      if (card) card.remove();
+      saveCurrentForm();
+    }
+
+    function seedDefaults() {
+      if (document.getElementById("competitorsContainer").children.length === 0) {
+        addCompetitor();
+        addCompetitor();
+        addCompetitor();
+      }
+
+      if (document.getElementById("emailsContainer").children.length === 0) {
+        addEmail();
+      }
+    }
+
+    function collectCompetitors() {
+      const blocks = document.querySelectorAll(".competitor-card");
+      return Array.from(blocks).map(block => ({
+        name: block.querySelector(".comp-name").value.trim(),
+        website_url: block.querySelector(".comp-website").value.trim() || null,
+        google_place_id: block.querySelector(".comp-place-id").value.trim() || null,
+        google_maps_url: block.querySelector(".comp-maps-url").value.trim() || null,
+        is_business: false
+      })).filter(x => x.name);
+    }
+
+    function collectEmails() {
+      const blocks = document.querySelectorAll(".email-card");
+      return Array.from(blocks)
+        .map(block => block.querySelector(".recipient-email").value.trim())
+        .filter(Boolean);
+    }
+
+    function getCurrentFormData() {
+      return {
+        business_name: document.getElementById("business_name").value.trim(),
+        primary_domain: document.getElementById("primary_domain").value.trim(),
+        website_url: document.getElementById("website_url").value.trim(),
+        city: document.getElementById("city").value.trim(),
+        state: document.getElementById("state").value.trim(),
+        country: document.getElementById("country").value.trim(),
+        google_place_id: document.getElementById("google_place_id").value.trim(),
+        google_maps_url: document.getElementById("google_maps_url").value.trim(),
+        notes: document.getElementById("notes").value.trim(),
+        schedule_hour: document.getElementById("schedule_hour").value,
+        schedule_minute: document.getElementById("schedule_minute").value,
+        schedule_timezone: document.getElementById("schedule_timezone").value.trim(),
+        billing_mode: document.getElementById("billing_mode").value,
+        send_checkout_email: document.getElementById("send_checkout_email").checked,
+        auto_generate_first_report: document.getElementById("auto_generate_first_report").checked,
+        run_initial_collection: document.getElementById("run_initial_collection").checked,
+        send_first_report: document.getElementById("send_first_report").checked,
+        competitors: collectCompetitors(),
+        recipient_emails: collectEmails()
+      };
+    }
+
+    function setCurrentFormData(data) {
+      document.getElementById("business_name").value = data.business_name || "";
+      document.getElementById("primary_domain").value = data.primary_domain || "";
+      document.getElementById("website_url").value = data.website_url || "";
+      document.getElementById("city").value = data.city || "";
+      document.getElementById("state").value = data.state || "";
+      document.getElementById("country").value = data.country || "US";
+      document.getElementById("google_place_id").value = data.google_place_id || "";
+      document.getElementById("google_maps_url").value = data.google_maps_url || "";
+      document.getElementById("notes").value = data.notes || "";
+
+      document.getElementById("schedule_hour").value = data.schedule_hour || "9";
+      document.getElementById("schedule_minute").value = data.schedule_minute || "0";
+      document.getElementById("schedule_timezone").value = data.schedule_timezone || "America/New_York";
+
+      document.getElementById("billing_mode").value = data.billing_mode || "free_preview";
+      document.getElementById("send_checkout_email").checked = Boolean(data.send_checkout_email);
+      document.getElementById("auto_generate_first_report").checked = Boolean(data.auto_generate_first_report);
+      document.getElementById("run_initial_collection").checked = Boolean(data.run_initial_collection);
+      document.getElementById("send_first_report").checked = Boolean(data.send_first_report);
+
+      document.getElementById("competitorsContainer").innerHTML = "";
+      (data.competitors || []).forEach(comp => addCompetitor(comp));
+
+      document.getElementById("emailsContainer").innerHTML = "";
+      (data.recipient_emails || []).forEach(email => addEmail(email));
+
+      seedDefaults();
+      attachAutosaveListeners();
+    }
+
+    function saveCurrentForm() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(getCurrentFormData()));
+    }
+
+    function loadCurrentForm() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return false;
+
+      try {
+        setCurrentFormData(JSON.parse(raw));
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function clearSavedForm() {
+      localStorage.removeItem(STORAGE_KEY);
+      selectedBusinessId = null;
+      latestGeneratedReportId = null;
+
+      document.getElementById("competitorsContainer").innerHTML = "";
+      document.getElementById("emailsContainer").innerHTML = "";
+
+      setCurrentFormData({
+        country: "US",
+        schedule_hour: "9",
+        schedule_minute: "0",
+        schedule_timezone: "America/New_York",
+        billing_mode: "free_preview",
+        competitors: [{}, {}, {}],
+        recipient_emails: [""]
+      });
+
+      document.getElementById("savedProfiles").value = "";
+      document.getElementById("result").textContent = "Form cleared.";
+      saveCurrentForm();
+    }
+
+    async function loadHistoryDropdown() {
+      const dropdown = document.getElementById("savedProfiles");
+      if (!dropdown) return;
+
+      dropdown.innerHTML = '<option value="">Load previous client...</option>';
+
+      try {
+        const response = await fetch(`${API_BASE}/admin/businesses`, {
+          headers: authHeaders()
+        });
+
+        const businesses = await parseResponse(response);
+
+        if (!response.ok) {
+          document.getElementById("result").textContent = JSON.stringify({
+            status: response.status,
+            error: businesses
+          }, null, 2);
+          return;
+        }
+
+        businesses.forEach((business) => {
+          const option = document.createElement("option");
+          option.value = business.id;
+          option.textContent = `${business.business_name}${business.city ? " — " + business.city : ""}${business.state ? ", " + business.state : ""}`;
+          option.dataset.business = JSON.stringify(business);
+          dropdown.appendChild(option);
+        });
+      } catch (err) {
+        document.getElementById("result").textContent = JSON.stringify({
+          error: String(err)
+        }, null, 2);
+      }
+    }
+
+    function loadSavedProfile() {
+      const dropdown = document.getElementById("savedProfiles");
+      const businessId = dropdown.value;
+
+      if (!businessId) return;
+
+      const selectedOption = dropdown.options[dropdown.selectedIndex];
+      const business = JSON.parse(selectedOption.dataset.business || "{}");
+
+      selectedBusinessId = businessId;
+      latestGeneratedReportId = null;
+
+      const competitors = (business.competitors || []).map(c => ({
+        name: c.name || "",
+        website_url: c.website_url || "",
+        google_place_id: c.google_place_id || "",
+        google_maps_url: c.google_maps_url || ""
+      }));
+
+      if (competitors.length === 0) {
+        competitors.push({});
+      }
+
+      setCurrentFormData({
+        business_name: business.business_name || "",
+        primary_domain: business.primary_domain || "",
+        website_url: business.website_url || "",
+        city: business.city || "",
+        state: business.state || "",
+        country: business.country || "US",
+        google_place_id: business.google_place_id || "",
+        google_maps_url: business.google_maps_url || "",
+        notes: business.notes || "",
+        schedule_hour: "9",
+        schedule_minute: "0",
+        schedule_timezone: "America/New_York",
+        billing_mode: "free_preview",
+        competitors: competitors,
+        recipient_emails: business.recipient_emails?.length
+          ? business.recipient_emails
+          : [""]
+      });
+
+      saveCurrentForm();
+
+      document.getElementById("result").textContent =
+        `Loaded client from database: ${business.business_name}`;
+    }
+
+    function attachAutosaveListeners() {
+      document.querySelectorAll("input, textarea, select").forEach(el => {
+        if (el.dataset.autosaveAttached === "true") return;
+        el.dataset.autosaveAttached = "true";
+
+        el.addEventListener("input", saveCurrentForm);
+        el.addEventListener("change", saveCurrentForm);
+      });
+    }
+
+    async function generateReportForSelectedBusiness() {
+      const resultEl = document.getElementById("result");
+
+      const dropdown = document.getElementById("savedProfiles");
+      const businessId = selectedBusinessId || dropdown.value;
+
+      if (!businessId) {
+        resultEl.textContent = "No business selected. Choose a client from the dropdown first.";
+        return;
+      }
+
+      selectedBusinessId = businessId;
+      resultEl.textContent = `Generating report for business ${businessId}...`;
+
+      try {
+        const response = await fetch(`${API_BASE}/business/${businessId}/reports/generate`, {
+          method: "POST",
+          headers: authHeaders({
+            "Content-Type": "application/json"
+          })
+        });
+
+        const data = await parseResponse(response);
+
+        console.log("Generated report:", data);
+
+        if (!response.ok) {
+          resultEl.textContent = JSON.stringify({
+            status: response.status,
+            error: data
+          }, null, 2);
+          return;
+        }
+
+        latestGeneratedReportId =
+          data.id ||
+          data.report_id ||
+          data.report?.id ||
+          data.generated_report_id ||
+          null;
+
+        resultEl.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        resultEl.textContent = JSON.stringify({
+          error: String(err)
+        }, null, 2);
+      }
+    }
+
+    async function sendLatestReportForSelectedBusiness() {
+      const resultEl = document.getElementById("result");
+
+      if (!latestGeneratedReportId) {
+        resultEl.textContent = "No generated report ID found yet. Click Generate Report first, then Send Latest Report.";
+        return;
+      }
+
+      try {
+        const emails = document.querySelectorAll(".recipient-email");
+        const firstEmail = emails.length > 0 ? emails[0].value.trim() : null;
+
+        if (!firstEmail) {
+          resultEl.textContent = "No recipient email found. Add an email first.";
+          return;
+        }
+
+        resultEl.textContent = `Sending report ${latestGeneratedReportId} to ${firstEmail}...`;
+        console.log("Sending report to:", firstEmail);
+
+        const response = await fetch(`${API_BASE}/generated-reports/${latestGeneratedReportId}/send`, {
+          method: "POST",
+          headers: authHeaders({
+            "Content-Type": "application/json"
+          }),
+          body: JSON.stringify({
+            to_email: firstEmail
+          })
+        });
+
+        const data = await parseResponse(response);
+
+        console.log("Send response:", data);
+
+        if (!response.ok) {
+          resultEl.textContent = JSON.stringify({
+            status: response.status,
+            error: data
+          }, null, 2);
+          return;
+        }
+
+        resultEl.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        resultEl.textContent = JSON.stringify({
+          error: String(err)
+        }, null, 2);
+      }
+    }
+
+    function openLatestReport() {
+      const resultEl = document.getElementById("result");
+
+      const dropdown = document.getElementById("savedProfiles");
+      const businessId = selectedBusinessId || dropdown.value;
+
+      if (!businessId) {
+        resultEl.textContent = "No business selected. Load a client first.";
+        return;
+      }
+
+      selectedBusinessId = businessId;
+      window.open(`${API_BASE}/business/${businessId}/reports/latest`, "_blank");
+    }
+
+    document.getElementById("onboardingForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const payload = {
+        business: {
+          business_name: document.getElementById("business_name").value.trim(),
+          primary_domain: document.getElementById("primary_domain").value.trim() || null,
+          city: document.getElementById("city").value.trim() || null,
+          state: document.getElementById("state").value.trim() || null,
+          country: document.getElementById("country").value.trim() || "US",
+          notes: document.getElementById("notes").value.trim() || null,
+          customer_label: document.getElementById("customer_label").value || "customers",
+          google_place_id: document.getElementById("google_place_id").value.trim() || null,
+          google_maps_url: document.getElementById("google_maps_url").value.trim() || null,
+          website_url: document.getElementById("website_url").value.trim() || null
+        },
+        competitors: collectCompetitors(),
+        recipient_emails: collectEmails(),
+        billing_mode: document.getElementById("billing_mode").value,
+        send_checkout_email: document.getElementById("send_checkout_email").checked,
+        auto_generate_first_report: document.getElementById("auto_generate_first_report").checked,
+        send_first_report: document.getElementById("send_first_report").checked,
+        run_initial_collection: document.getElementById("run_initial_collection")
+          ? document.getElementById("run_initial_collection").checked
+          : false,
+        schedule_hour: Number(document.getElementById("schedule_hour").value),
+        schedule_minute: Number(document.getElementById("schedule_minute").value),
+        schedule_timezone: document.getElementById("schedule_timezone").value.trim() || "America/New_York"
+      };
+
+      saveCurrentForm();
+
+      const resultEl = document.getElementById("result");
+      resultEl.textContent = "Submitting...";
+
+      try {
+        const response = await fetch(`${API_BASE}/onboarding`, {
+          method: "POST",
+          headers: authHeaders({
+            "Content-Type": "application/json"
+          }),
+          body: JSON.stringify(payload)
+        });
+
+        const data = await parseResponse(response);
+
+        if (!response.ok) {
+          resultEl.textContent = JSON.stringify({
+            status: response.status,
+            error: data
+          }, null, 2);
+          return;
+        }
+
+        const newId =
+          data.business_id ||
+          data.business?.id ||
+          data.business?.business_id ||
+          data.id;
+
+        if (newId) {
+          selectedBusinessId = newId;
+          selectedBusinessId = newId;
+          await loadHistoryDropdown(newId);
+        }
+
+        resultEl.textContent = JSON.stringify(data, null, 2);
+
+      } catch (err) {
+        document.getElementById("result").textContent = JSON.stringify({
+          error: String(err)
+        }, null, 2);
+      }
+    });
+
+    // ── Page init ──────────────────────────────────────────────────────────
+    document.addEventListener("DOMContentLoaded", () => {
+      seedDefaults();
+      loadCurrentForm();
+      attachAutosaveListeners();
+    });
+
+  </script>
+</body>
+</html>

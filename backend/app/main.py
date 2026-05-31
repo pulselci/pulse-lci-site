@@ -34,4 +34,10 @@ app.include_router(intake_router)
 
 @app.get("/admin/onboarding", include_in_schema=False)
 def onboarding_form():
-    html_path = Path(__file__).resolve().parent 
+    html_path = Path(__file__).resolve().parent / "static" / "onboarding.html"
+    return FileResponse(html_path)
+
+
+@app.on_event("shutdown")
+def on_shutdown():
+    close_pool()

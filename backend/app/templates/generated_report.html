@@ -1114,4 +1114,131 @@
       {% if review_pulse %}
         {% if sections.get("is_free_preview") %}<div class="premium-section-wrapper"><div class="premium-blur-content">{% endif %}
         <div class="summary-card">
-          <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #3a5278; padding-bo
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #3a5278; padding-bottom: 10px; margin-bottom: 14px; border-bottom: 1px solid #dce6f5;">Review Pulse</div>
+          <div class="detail-text" style="margin-bottom: 10px;">
+            This chart shows net review change over the last 30 days. Up means a competitor is gaining review momentum. Down means reviews are being lost or momentum has reversed.
+          </div>
+          <img src="data:image/png;base64,{{ review_pulse.chart_base64 }}" alt="Review pulse chart" style="width: 100%; max-width: 620px; display: block; margin: 6px auto 4px auto;" />
+        </div>
+        {% if sections.get("is_free_preview") %}
+          </div>
+          <div class="premium-overlay">
+            <div class="premium-lock-icon">🔒</div>
+            <div class="premium-overlay-title">Review Pulse — Subscribers Only</div>
+            <div class="premium-overlay-body">Month-over-month review velocity trends for every competitor are available with a Pulse LCI subscription.</div>
+            <a class="premium-cta-btn" href="https://pulselci.com/#pricing">Unlock Full Report</a>
+          </div>
+        </div>
+        {% endif %}
+      {% endif %}
+
+    {% if experience.get("this_month_focus") %}
+      <div class="section-title">Execution Plan</div>
+    <div class="summary-card next-moves-card">
+
+      <div class="detail-text" style="margin-bottom: 10px;">
+        {% set sorted_rows = sov_rows %}
+        {% set you = sov_rows|selectattr("is_business")|list|first %}
+        {% set leader = sorted_rows[0] if sorted_rows else none %}
+
+        {% if you and leader and not leader.get("is_business") %}
+          {% set you_reviews = you.get("reviews_total") or you.get("review_count") or 0 %}
+          {% set leader_reviews = leader.get("reviews_total") or leader.get("review_count") or 0 %}
+          {% set leader_name = leader.get("competitor_name") or leader.get("name") or "the market leader" %}
+          {% set gap = leader_reviews - you_reviews %}
+          {% set moderate_target = ((gap / 12)|round(0, "ceil"))|int %}
+          {% set aggressive_target = ((gap / 6)|round(0, "ceil"))|int %}
+
+          <strong>Not closing yet:</strong>
+          At the current pace, you are not closing the gap with {{ leader_name }}.
+          To gain ground, you need to outpace them by roughly {{ moderate_target }}-{{ aggressive_target }} reviews per month.
+        {% else %}
+          Clear action items to improve position before the next report.
+        {% endif %}
+      </div>
+
+        <ol style="padding-left: 16px; margin: 0;">
+        {% for item in experience.get("this_month_focus") or [] %}
+
+            {% set action_text = item.get("action") or item.get("summary") or item.get("title") or "" %}
+            {% set detail_text = item.get("detail") or "" %}
+
+            {% set dominant_competitor = "" %}
+
+            {% set competitor_rows = sov_rows|rejectattr("is_business")|list %}
+            {% set dominant_competitor = "" %}
+
+            {% if competitor_rows %}
+              {% set dominant_competitor = competitor_rows[0].get("competitor_name") or competitor_rows[0].get("name") %}
+            {% endif %}
+
+        <li style="margin-bottom: 10px;">
+
+          {% set review_target = report.sections.report_experience.review_target or {} %}
+          {% set is_leader = review_target.get("current_rank") == 1 %}
+
+          <strong>
+            {% if is_leader and dominant_competitor and "choose you over the leader" in action_text|lower %}
+              {{ action_text|replace("the leader", dominant_competitor) }}
+            {% elif is_leader and dominant_competitor and "choose you over the closest competitor" in action_text|lower %}
+              {{ action_text|replace("the closest competitor", dominant_competitor) }}
+            {% else %}
+              {{ action_text }}
+            {% endif %}
+          </strong>
+
+          <div class="detail-text" style="margin-top: 3px;">
+
+          {% if detail_text and "identify the highest-impact opportunity" not in detail_text|lower %}
+              {{ detail_text }}
+
+          {% elif "review" in action_text|lower %}
+
+          {% set review_target = report.sections.report_experience.review_target %}
+          {% set review_pace = report.sections.report_experience.review_pace %}
+
+
+          {% if review_target and review_target.get("headline") %}
+              {{ review_target.get("headline") }}
+              {% if review_pace and review_pace.get("message") %}
+                <br/><span style="display:block;margin-top:2px;">{{ review_pace.get("message") }}</span>
+              {% endif %}
+          {% else %}
+              Focus on increasing your review velocity to improve market position.
+          {% endif %}
+
+          {% endif %}
+          </div>
+
+        </li>
+        {% endfor %}
+        </ol>
+
+    </div>
+    {% endif %}
+
+    {% if sections.get("is_free_preview") %}
+      </div>{# end premium-blur-content #}
+      <div class="premium-overlay">
+        <div class="premium-lock-icon">🔒</div>
+        <div class="premium-overlay-title">Execution Plan — Subscribers Only</div>
+        <div class="premium-overlay-body">Your month-by-month action plan — customized to your competitive gap — is available with a Pulse LCI subscription.</div>
+        <a class="premium-cta-btn" href="https://pulselci.com/#pricing">Unlock Full Report</a>
+      </div>
+    </div>{# end premium-section-wrapper #}
+    {% endif %}
+
+    {% if sections.get("is_free_preview") %}
+    <div style="margin: 24px 0; padding: 18px 20px; background: #f0f6ff; border: 1.5px solid #bcd2f0; border-radius: 8px; text-align: center;">
+      <div style="font-size: 13px; font-weight: 700; color: #1a3a5c; margin-bottom: 6px;">Want the full picture every month?</div>
+      <div style="font-size: 12px; color: #4a5568; margin-bottom: 12px;">Subscribe to Pulse LCI and get complete strategic recommendations, market intelligence, and execution plans delivered monthly — automatically.</div>
+      <a href="https://pulselci.com/#pricing" style="display:inline-block;background:#1a3a5c;color:#fff;font-size:12px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;padding:9px 22px;border-radius:5px;text-decoration:none;">See Subscription Options</a>
+    </div>
+    {% endif %}
+
+    <div class="footer-note">
+      This report is generated from deterministic competitive signals across snapshots, review trends, and customer perception themes. It is designed to support positioning and decision-making, not replace operator judgment.
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "business_name": "Test Local Business",
+  "primary_domain": "testlocal.com",
+  "city": "Cincinnati",
+  "state": "OH",
+  "competitors": [
+    { "name": "Competitor One", "website_url": "https://competitorone.com" },
+    { "name": "Competitor Two", "website_url": "https://competitortwo.com" }
+  ]
+}

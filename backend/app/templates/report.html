@@ -1,0 +1,326 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>LCI Business Report</title>
+  <style>
+    @page { size: Letter; margin: 0.75in; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      color: #111;
+      margin: 0;
+      padding: 0;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .header {
+      border-bottom: 2px solid #111;
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+    }
+    .title {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0 0 4px 0;
+    }
+    .subtitle {
+      font-size: 12px;
+      color: #444;
+      margin: 0;
+    }
+    .meta {
+      margin-top: 10px;
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      color: #333;
+    }
+    .meta .item {
+      min-width: 180px;
+    }
+    .label {
+      font-size: 10px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-bottom: 2px;
+    }
+    .value {
+      font-size: 12px;
+      color: #111;
+      font-weight: 600;
+    }
+
+    .section {
+      margin: 16px 0 0 0;
+      page-break-inside: avoid;
+    }
+    .section h2 {
+      font-size: 14px;
+      margin: 0 0 8px 0;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .summary {
+      background: #f6f7f9;
+      border: 1px solid #e6e8ee;
+      padding: 10px 12px;
+      border-radius: 8px;
+      white-space: pre-wrap;
+    }
+
+    ul.insights {
+      margin: 0;
+      padding-left: 18px;
+    }
+    ul.insights li {
+      margin: 0 0 6px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+    th, td {
+      border: 1px solid #e6e6e6;
+      padding: 8px;
+      vertical-align: top;
+    }
+    th {
+      background: #f2f3f5;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      text-align: left;
+      color: #333;
+    }
+    td {
+      font-size: 12px;
+    }
+    .muted { color: #666; font-weight: 400; }
+
+    /* Label pills */
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      border: 1px solid #ddd;
+      background: #f7f7f7;
+      color: #333;
+      white-space: nowrap;
+    }
+
+    .footer {
+      margin-top: 18px;
+      border-top: 1px solid #ddd;
+      padding-top: 10px;
+      color: #666;
+      font-size: 10px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="header">
+    <p class="title">Competitive Intelligence Report</p>
+    <p class="subtitle">
+      {% if business_name %}{{ business_name }}{% else %}Business{% endif %}
+      • {{ schedule|upper }} • Reporting Window
+    </p>
+
+    <div class="meta">
+      <div class="item">
+        <div class="label">Period</div>
+        <div class="value">{{ period_start }} → {{ period_end }}</div>
+      </div>
+
+      <div class="item">
+        <div class="label">Generated</div>
+        <div class="value">{{ generated_at }}</div>
+      </div>
+
+      <div class="item">
+        <div class="label">Report ID</div>
+        <div class="value">{{ report_id }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Summary</h2>
+    <div class="summary">{{ summary_text or "No summary available." }}</div>
+  </div>
+
+  <!-- Competitive Momentum (Phase G.1) -->
+  <div class="section">
+    <h2>Competitive Momentum</h2>
+
+    {% if momentum and momentum|length > 0 %}
+      <div class="muted">
+        Momentum highlights competitors accelerating or decelerating based on recent review activity and rating trend.
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 34%;">Competitor</th>
+            <th style="width: 16%;">Label</th>
+            <th style="width: 12%;">Score</th>
+            <th style="width: 38%;">Explanation</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in momentum %}
+            <tr>
+              <td>{{ m.get("competitor_name", "—") }}</td>
+              <td><span class="pill">{{ m.get("label", "—") }}</span></td>
+              <td>{{ m.get("momentum_score", "—") }}</td>
+              <td class="muted">{{ m.get("explanation", "") }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="muted">No momentum signals were detected for this window.</div>
+    {% endif %}
+  </div>
+
+  <!-- Review Velocity Trends (Phase G.2) -->
+  <div class="section">
+    <h2>Review Velocity Trends</h2>
+
+    {% if velocity_trends and velocity_trends|length > 0 %}
+      <div class="muted">
+        Compares today’s review activity to the competitor’s 7-day average to flag unusual spikes or drop-offs.
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 30%;">Competitor</th>
+            <th style="width: 18%;">Anomaly</th>
+            <th style="width: 14%;">Today</th>
+            <th style="width: 16%;">7d Avg/Day</th>
+            <th style="width: 12%;">Ratio</th>
+            <th style="width: 10%;">Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in velocity_trends %}
+            <tr>
+              <td>{{ v.get("competitor_name", "—") }}</td>
+              <td><span class="pill">{{ v.get("anomaly", "normal") }}</span></td>
+              <td>{{ v.get("velocity_1d", 0) }}</td>
+              <td>{{ v.get("velocity_7d_avg", 0) }}</td>
+              <td>{{ v.get("velocity_ratio", 0) }}</td>
+              <td class="muted">{{ v.get("explanation", "") }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="muted">No velocity trends were detected for this window.</div>
+    {% endif %}
+  </div>
+
+    <!-- NEW: Threat Detection (Phase G.3) -->
+  <div class="section">
+    <h2>Competitive Threats</h2>
+
+    {% if threats and threats|length > 0 %}
+      <div class="muted">
+        Threat level estimates which competitors are most likely to pressure your position based on momentum + velocity.
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 30%;">Competitor</th>
+            <th style="width: 14%;">Threat</th>
+            <th style="width: 12%;">Score</th>
+            <th style="width: 44%;">Reasons</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in threats %}
+            <tr>
+              <td>{{ t.get("competitor_name", "—") }}</td>
+              <td><span class="pill">{{ t.get("threat_level", "low") }}</span></td>
+              <td>{{ t.get("threat_score", 0) }}</td>
+              <td class="muted">
+                {% if t.get("reasons") %}
+                  {{ t.get("reasons")|join("; ") }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="muted">No threats were detected for this window.</div>
+    {% endif %}
+  </div>
+
+  <div class="section">
+    <h2>Insights</h2>
+    {% if insights and insights|length > 0 %}
+      <ul class="insights">
+        {% for item in insights %}
+          <li>{{ item }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="muted">No insights were generated for this window.</div>
+    {% endif %}
+  </div>
+
+  <!-- UPDATED: Top Movers (match stored fields) -->
+  <div class="section">
+    <h2>Top Movers</h2>
+    {% if top_moves and top_moves|length > 0 %}
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 40%;">Competitor</th>
+            <th style="width: 20%;">Reviews (7d)</th>
+            <th style="width: 20%;">Reviews (1d)</th>
+            <th style="width: 20%;">Rating (7d)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in top_moves %}
+            <tr>
+              <td>{{ row.get("competitor_name", "—") }}</td>
+              <td>{{ row.get("reviews_delta_7d", 0) }}</td>
+              <td>{{ row.get("reviews_delta_1d", 0) }}</td>
+              <td class="muted">
+                {% if row.get("rating_delta_7d") is not none %}
+                  {{ row.get("rating_delta_7d") }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="muted">No top movers available for this window.</div>
+    {% endif %}
+  </div>
+
+  <div class="footer">
+    <div>Local Competitor Intelligence (LCI)</div>
+    <div class="muted">Confidential • For internal use</div>
+  </div>
+</body>
+</html>

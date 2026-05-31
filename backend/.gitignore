@@ -1,0 +1,57 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Debug / temp
+tmp_*
+_debug_*
+*.log
+
+# PDFs / outputs
+*.pdf
+out/
+
+# Local scripts
+*.bat
+*.json
+
+# VS Code
+.vscode/
+
+# Node (frontend)
+node_modules/
+
+# OS
+.DS_Store
+
+# Local env / secrets
+.env
+
+# Alternate virtual env
+.venv312/
+
+# Local test scripts
+test_*.py
+check_*.py
+print_*.py
+inspect_*.py
+list_*.py
+compare_*.py
+describe_*.py
+find_*.py
+resolve_*.py
+verify_*.py
+preview_*.py
+insert_*.py
+create_*.py
+_backfill_*.py
+
+# Broken/backups
+*_backup.py
+*_backup.html
+
+# Local debug outputs
+debug_*.html
+test_*.html
+importtime.txt
