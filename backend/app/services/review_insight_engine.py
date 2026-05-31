@@ -1,8 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+import logging
+import re
+import urllib.request
+from typing import Any, Dict, List, Optional
 
 from app.core.db import get_conn
+
+logger = logging.getLogger(__name__)
 from app.services.review_analysis import (
     build_complaint_themes_insight,
     build_hidden_opportunity_insight,
@@ -11,25 +16,51 @@ from app.services.review_analysis import (
 )
 
 
+def fetch_website_text(url: str, max_chars: int = 3000) -> str:
+    """
+    Fetch a competitor's homepage and return visible text, stripped of HTML.
+    Returns empty string on any error.
+    """
+    if not url or not url.strip():
+        return ""
+    try:
+        if not url.startswith("http"):
+            url = "https://" + url
+        req = urllib.request.Request(
+            url,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; LCIBot/1.0)"},
+        )
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            raw = resp.read(max_chars * 10).decode("utf-8", errors="ignore")
+        # Strip tags, collapse whitespace
+        text = re.sub(r"<style[^>]*>.*?</style>", " ", raw, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r"<script[^>]*>.*?</script>", " ", text, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r"<[^>]+>", " ", text)
+        text = re.sub(r"\s+", " ", text).strip()
+        return text[:max_chars]
+    except Exception as exc:
+        logger.debug("website fetch failed for %s: %s", url, exc)
+        return ""
+
+
 def get_competitors_with_reviews(business_id: str) -> List[Dict[str, Any]]:
     sql = """
     select
         gr.competitor_id as competitor_id,
         coalesce(c.name, 'Unknown Competitor') as competitor_name,
-        count(*) as review_count
+        c.website_url as website_url,
+        count(*) as ingested_review_count
     from public.google_reviews gr
     join public.competitors c
       on c.id = gr.competitor_id
     where gr.competitor_id in (
-        select id
-        from public.competitors
-        where business_id = %s
+        select id from public.competitors where business_id = %s
     )
     and gr.review_text is not null
     and length(trim(gr.review_text)) > 0
-    group by gr.competitor_id, coalesce(c.name, 'Unknown Competitor')
+    group by gr.competitor_id, coalesce(c.name, 'Unknown Competitor'), c.website_url
     having count(*) > 0
-    order by count(*) desc, coalesce(c.name, 'Unknown Competitor') asc
+    order by coalesce(c.name, 'Unknown Competitor') asc
     """
 
     with get_conn() as conn:
@@ -67,11 +98,7 @@ def get_review_rows_for_business(business_id: str) -> List[Dict[str, Any]]:
     from public.google_reviews gr
     left join public.competitors c
       on c.id = gr.competitor_id
-    where lower(coalesce(c.name, 'Unknown Competitor')) in (
-        select lower(c2.name)
-        from public.competitors c2
-        where c2.business_id = %s
-    )
+    where gr.business_id = %s
     and gr.review_text is not null
     and length(trim(gr.review_text)) > 0
     order by gr.created_at desc nulls last, gr.id desc
@@ -103,9 +130,15 @@ def build_review_insights_for_business(
     business_id: str,
     owner_competitor_id: str | None = None,
     owner_name: str | None = None,
+    competitor_review_totals: Optional[Dict[str, int]] = None,
 ) -> List[Dict[str, Any]]:
     competitors = get_competitors_with_reviews(business_id)
     insights: List[Dict[str, Any]] = []
+
+    logger.info(
+        "[review_insights] business_id=%s owner_competitor_id=%s competitors_with_reviews=%d",
+        business_id, owner_competitor_id, len(competitors)
+    )
 
     for row in competitors:
         competitor_id = str(row.get("competitor_id"))
@@ -113,14 +146,35 @@ def build_review_insights_for_business(
 
         # Skip self for competitor-facing insights
         if owner_competitor_id and competitor_id == owner_competitor_id:
+            logger.info("[review_insights] skipping owner competitor_id=%s name=%s", competitor_id, competitor_name)
             continue
+
+        logger.info("[review_insights] analyzing competitor_id=%s name=%s review_count=%s",
+                    competitor_id, competitor_name, row.get("review_count"))
+
+        # Fetch real website copy if URL is available
+        website_url = row.get("website_url") or ""
+        website_text = ""
+        if website_url:
+            website_text = fetch_website_text(website_url)
+            logger.info("[review_insights] website fetch %s chars for %s",
+                        len(website_text), competitor_name)
+
+        reviews_total = int(
+            (competitor_review_totals or {}).get(competitor_id)
+            or row.get("reviews_total")
+            or 0
+        )
 
         praise = build_praise_themes_insight(
             business_id=business_id,
             competitor_id=competitor_id,
             competitor_name=competitor_name,
         )
+        logger.info("[review_insights] praise insight for %s: %s", competitor_name, praise is not None)
         if praise:
+            # Attach the real Google review total so formatter can sort by market size
+            (praise.get("details") or {})["reviews_total"] = reviews_total
             insights.append(praise)
 
         complaints = build_complaint_themes_insight(
@@ -142,13 +196,14 @@ def build_review_insights_for_business(
             if hidden:
                 insights.append(hidden)
 
-        messaging = build_messaging_mismatch_insight(
-            business_id=business_id,
-            competitor_id=competitor_id,
-            competitor_name=competitor_name,
-            website_text="quality repairs, trusted local service, easy scheduling",
-        )
-        if messaging:
-            insights.append(messaging)
+        if website_text:
+            messaging = build_messaging_mismatch_insight(
+                business_id=business_id,
+                competitor_id=competitor_id,
+                competitor_name=competitor_name,
+                website_text=website_text,
+            )
+            if messaging:
+                insights.append(messaging)
 
     return insights

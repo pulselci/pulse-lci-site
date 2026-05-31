@@ -275,7 +275,8 @@ def upsert_google_reviews(records: List[GoogleReviewRecord]) -> int:
 
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.executemany(sql, rows)
+            for row in rows:
+                cur.execute(sql, row)
         conn.commit()
 
     return len(rows)
