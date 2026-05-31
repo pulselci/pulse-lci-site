@@ -394,6 +394,59 @@
       letter-spacing: 0.04em;
       color: #475467;
     }
+
+    /* ── Free-preview blur overlay ── */
+    .premium-section-wrapper {
+      position: relative;
+      overflow: hidden;
+      border-radius: 8px;
+    }
+    .premium-blur-content {
+      filter: blur(5px);
+      pointer-events: none;
+      user-select: none;
+    }
+    .premium-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.55);
+      z-index: 10;
+      text-align: center;
+      padding: 24px;
+    }
+    .premium-lock-icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+    .premium-overlay-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1a3a5c;
+      margin-bottom: 6px;
+    }
+    .premium-overlay-body {
+      font-size: 12px;
+      color: #4a5568;
+      max-width: 340px;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+    .premium-cta-btn {
+      display: inline-block;
+      background: #1a3a5c;
+      color: #ffffff !important;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 9px 22px;
+      border-radius: 5px;
+      text-decoration: none;
+    }
   </style>
 </head>
 <body>
@@ -768,6 +821,11 @@
       {% endif %}
     </div>
 
+    {% if sections.get("is_free_preview") %}
+    <div class="premium-section-wrapper">
+      <div class="premium-blur-content">
+    {% endif %}
+
     <div class="section">
       <div class="section-title">Strategic Recommendations</div>
 
@@ -836,6 +894,22 @@
         </div>
       {% endif %}
     </div>
+
+    {% if sections.get("is_free_preview") %}
+      </div>{# end premium-blur-content #}
+      <div class="premium-overlay">
+        <div class="premium-lock-icon">🔒</div>
+        <div class="premium-overlay-title">Strategic Recommendations — Subscribers Only</div>
+        <div class="premium-overlay-body">Your full set of prioritized action items — ranked by competitive impact — is available with a Pulse LCI subscription.</div>
+        <a class="premium-cta-btn" href="https://pulselci.com/#pricing">Unlock Full Report</a>
+      </div>
+    </div>{# end premium-section-wrapper #}
+    {% endif %}
+
+    {% if sections.get("is_free_preview") %}
+    <div class="premium-section-wrapper">
+      <div class="premium-blur-content">
+    {% endif %}
 
     <div class="section">
       <div class="section-title">Supporting Market Signals</div>
@@ -1029,6 +1103,22 @@
         </div>
       {% endif %}
 
+    {% if sections.get("is_free_preview") %}
+      </div>{# end premium-blur-content #}
+      <div class="premium-overlay">
+        <div class="premium-lock-icon">🔒</div>
+        <div class="premium-overlay-title">Market Intelligence — Subscribers Only</div>
+        <div class="premium-overlay-body">Customer perception analysis, friction signals, and competitive positioning themes are available with a Pulse LCI subscription.</div>
+        <a class="premium-cta-btn" href="https://pulselci.com/#pricing">Unlock Full Report</a>
+      </div>
+    </div>{# end premium-section-wrapper #}
+    {% endif %}
+
+    {% if sections.get("is_free_preview") %}
+    <div class="premium-section-wrapper">
+      <div class="premium-blur-content">
+    {% endif %}
+
     {% if experience.get("this_month_focus") %}
       <div class="section-title">Execution Plan</div>
     <div class="summary-card next-moves-card">
@@ -1111,6 +1201,25 @@
         {% endfor %}
         </ol>
 
+    </div>
+    {% endif %}
+
+    {% if sections.get("is_free_preview") %}
+      </div>{# end premium-blur-content #}
+      <div class="premium-overlay">
+        <div class="premium-lock-icon">🔒</div>
+        <div class="premium-overlay-title">Execution Plan — Subscribers Only</div>
+        <div class="premium-overlay-body">Your month-by-month action plan — customized to your competitive gap — is available with a Pulse LCI subscription.</div>
+        <a class="premium-cta-btn" href="https://pulselci.com/#pricing">Unlock Full Report</a>
+      </div>
+    </div>{# end premium-section-wrapper #}
+    {% endif %}
+
+    {% if sections.get("is_free_preview") %}
+    <div style="margin: 24px 0; padding: 18px 20px; background: #f0f6ff; border: 1.5px solid #bcd2f0; border-radius: 8px; text-align: center;">
+      <div style="font-size: 13px; font-weight: 700; color: #1a3a5c; margin-bottom: 6px;">Want the full picture every month?</div>
+      <div style="font-size: 12px; color: #4a5568; margin-bottom: 12px;">Subscribe to Pulse LCI and get complete strategic recommendations, market intelligence, and execution plans delivered monthly — automatically.</div>
+      <a href="https://pulselci.com/#pricing" style="display:inline-block;background:#1a3a5c;color:#fff;font-size:12px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;padding:9px 22px;border-radius:5px;text-decoration:none;">See Subscription Options</a>
     </div>
     {% endif %}
 

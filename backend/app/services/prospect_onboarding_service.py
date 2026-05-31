@@ -178,7 +178,28 @@ def onboard_prospect(
             logger.error("Report generation failed for %s: %s", business_id, exc)
 
         # ------------------------------------------------------------------
-        # 7. Email the report
+        # 7. Mark report as free preview (blurs premium sections in PDF)
+        # ------------------------------------------------------------------
+        if report_id:
+            try:
+                from app.core.db import get_conn
+                with get_conn() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            """
+                            UPDATE generated_reports
+                            SET sections = sections || '{"is_free_preview": true}'::jsonb
+                            WHERE id = %s
+                            """,
+                            (report_id,),
+                        )
+                    conn.commit()
+                logger.info("Marked report %s as free preview", report_id)
+            except Exception as exc:
+                logger.warning("Could not mark report as free preview: %s", exc)
+
+        # ------------------------------------------------------------------
+        # 8. Email the report
         # ------------------------------------------------------------------
         if report_id and contact_email:
             try:
