@@ -821,99 +821,112 @@
       {% endif %}
     </div>
 
-    {% if sections.get("is_free_preview") %}
-    <div class="premium-section-wrapper">
-      <div class="premium-blur-content">
-    {% endif %}
-
+    {# ── Strategic Recommendations ── #}
+    {# Free preview: show first group/card fully, blur remaining groups #}
     <div class="section">
       <div class="section-title">Strategic Recommendations</div>
 
       {% if grouped_sections %}
         {% for group in grouped_sections %}
-          <div class="section" style="margin-bottom: 14px;">
-            {% if group.get("section") != "Strategic Recommendations" %}
-              <div class="section-title">{{ group.get("section") }}</div>
-            {% endif %}
+          {% set loop_idx = loop.index0 %}
 
-            <div class="cards">
-              {% set sorted_insights = (group.get("insights") or [])|sort(attribute="priority", reverse=False) %}
-              {% set ns = namespace(items=[]) %}
-              {% for item in group.get("insights") or [] %}
-                {% if item.get("priority") == "Immediate" %}{% set ns.items = ns.items + [item] %}{% endif %}
-              {% endfor %}
-              {% for item in group.get("insights") or [] %}
-                {% if item.get("priority") != "Immediate" %}{% set ns.items = ns.items + [item] %}{% endif %}
-              {% endfor %}
-              {% for item in ns.items %}
-                {% set priority = item.get("priority") or "Monitor" %}
-                <div class="insight-card">
-                  <div class="insight-top">
-                    <div class="insight-title-col">
-                      {% set summary_text = item.get("summary") or "" %}
+          {# Build sorted insight list for this group #}
+          {% set ns = namespace(items=[]) %}
+          {% for item in group.get("insights") or [] %}
+            {% if item.get("priority") == "Immediate" %}{% set ns.items = ns.items + [item] %}{% endif %}
+          {% endfor %}
+          {% for item in group.get("insights") or [] %}
+            {% if item.get("priority") != "Immediate" %}{% set ns.items = ns.items + [item] %}{% endif %}
+          {% endfor %}
 
-                      {% if "Customer Perception Insights" in summary_text %}
-                        <p class="insight-summary">
-                          Customer perception shows a clear positioning opening: make speed and convenience the core message.
-                        </p>
-                      {% else %}
-                        <p class="insight-summary">{{ summary_text }}</p>
-                      {% endif %}
-                    </div>
-                    <div class="insight-badge-col">
-                      <span class="badge {% if priority == 'Immediate' %}badge-immediate{% elif priority == 'Next' %}badge-next{% else %}badge-monitor{% endif %}">
-                        {% if priority == 'Immediate' %}Immediate{% elif priority == 'Next' %}Next{% else %}Monitor{% endif %}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div class="detail-grid">
-                    <div class="detail-col">
-                      <div class="detail-label">Why it matters</div>
-                      <p class="detail-text">{{ item.get("why_it_matters") or item.get("implication") or "This signal helps clarify where to focus next." }}</p>
-                    </div>
-                    <div class="detail-col">
-                      <div class="detail-label">Action</div>
-                      <p class="detail-text">{{ item.get("action") or item.get("recommended_action") or "Review this item and decide whether it changes messaging, operations, or monitoring." }}</p>
-                    </div>
-                    <div class="detail-col">
-                      {% if item.get("how_to_implement") %}
-                        <div class="detail-label">How to implement</div>
-                        <p class="detail-text">{{ item.get("how_to_implement") }}</p>
-                      {% endif %}
-                    </div>
+          {% if sections.get("is_free_preview") and loop_idx > 0 %}
+            {# Blur groups after the first #}
+            <div class="premium-section-wrapper" style="margin-bottom:14px;">
+              <div class="premium-blur-content">
+                <div class="section" style="margin-bottom: 14px;">
+                  {% if group.get("section") != "Strategic Recommendations" %}
+                    <div class="section-title">{{ group.get("section") }}</div>
+                  {% endif %}
+                  <div class="cards">
+                    {% for item in ns.items %}
+                      {% set priority = item.get("priority") or "Monitor" %}
+                      <div class="insight-card">
+                        <div class="insight-top">
+                          <div class="insight-title-col"><p class="insight-summary">{{ item.get("summary") or "" }}</p></div>
+                          <div class="insight-badge-col">
+                            <span class="badge {% if priority == 'Immediate' %}badge-immediate{% elif priority == 'Next' %}badge-next{% else %}badge-monitor{% endif %}">
+                              {% if priority == 'Immediate' %}Immediate{% elif priority == 'Next' %}Next{% else %}Monitor{% endif %}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    {% endfor %}
                   </div>
                 </div>
-              {% endfor %}
+              </div>
+              <div class="premium-overlay">
+                <div class="premium-lock-icon">🔒</div>
+                <div class="premium-overlay-title">More Recommendations — Subscribers Only</div>
+                <div class="premium-overlay-body">Additional prioritized action items are available with a Pulse LCI subscription.</div>
+                <a class="premium-cta-btn" href="https://pulselci.com/#pricing">Unlock Full Report</a>
+              </div>
             </div>
-          </div>
+          {% else %}
+            {# Show this group fully (always for paid; first group for free preview) #}
+            <div class="section" style="margin-bottom: 14px;">
+              {% if group.get("section") != "Strategic Recommendations" %}
+                <div class="section-title">{{ group.get("section") }}</div>
+              {% endif %}
+              <div class="cards">
+                {% for item in ns.items %}
+                  {% set priority = item.get("priority") or "Monitor" %}
+                  <div class="insight-card">
+                    <div class="insight-top">
+                      <div class="insight-title-col">
+                        {% set summary_text = item.get("summary") or "" %}
+                        {% if "Customer Perception Insights" in summary_text %}
+                          <p class="insight-summary">Customer perception shows a clear positioning opening: make speed and convenience the core message.</p>
+                        {% else %}
+                          <p class="insight-summary">{{ summary_text }}</p>
+                        {% endif %}
+                      </div>
+                      <div class="insight-badge-col">
+                        <span class="badge {% if priority == 'Immediate' %}badge-immediate{% elif priority == 'Next' %}badge-next{% else %}badge-monitor{% endif %}">
+                          {% if priority == 'Immediate' %}Immediate{% elif priority == 'Next' %}Next{% else %}Monitor{% endif %}
+                        </span>
+                      </div>
+                    </div>
+                    <div class="detail-grid">
+                      <div class="detail-col">
+                        <div class="detail-label">Why it matters</div>
+                        <p class="detail-text">{{ item.get("why_it_matters") or item.get("implication") or "This signal helps clarify where to focus next." }}</p>
+                      </div>
+                      <div class="detail-col">
+                        <div class="detail-label">Action</div>
+                        <p class="detail-text">{{ item.get("action") or item.get("recommended_action") or "Review this item and decide whether it changes messaging, operations, or monitoring." }}</p>
+                      </div>
+                      <div class="detail-col">
+                        {% if item.get("how_to_implement") %}
+                          <div class="detail-label">How to implement</div>
+                          <p class="detail-text">{{ item.get("how_to_implement") }}</p>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
         {% endfor %}
       {% else %}
-        <div class="empty-note">
-          No client-facing report experience data was available for this report.
-        </div>
+        <div class="empty-note">No client-facing report experience data was available for this report.</div>
       {% endif %}
     </div>
-
-    {% if sections.get("is_free_preview") %}
-      </div>{# end premium-blur-content #}
-      <div class="premium-overlay">
-        <div class="premium-lock-icon">🔒</div>
-        <div class="premium-overlay-title">Strategic Recommendations — Subscribers Only</div>
-        <div class="premium-overlay-body">Your full set of prioritized action items — ranked by competitive impact — is available with a Pulse LCI subscription.</div>
-        <a class="premium-cta-btn" href="https://pulselci.com/#pricing">Unlock Full Report</a>
-      </div>
-    </div>{# end premium-section-wrapper #}
-    {% endif %}
-
-    {% if sections.get("is_free_preview") %}
-    <div class="premium-section-wrapper">
-      <div class="premium-blur-content">
-    {% endif %}
 
     <div class="section">
       <div class="section-title">Supporting Market Signals</div>
 
+      {# Customer Perception Narrative — always visible #}
       <div class="summary-card">
         <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #3a5278; padding-bottom: 10px; margin-bottom: 14px; border-bottom: 1px solid #dce6f5;">Customer Perception Narrative</div>
         {% set perception_body = (sections.get("customer_perception_insights") or {}).get("body") or "" %}
@@ -951,6 +964,10 @@
 
       {% set friction = sections.get("customer_friction_signals") or {} %}
       {% if friction %}
+        {% if sections.get("is_free_preview") %}
+        <div class="premium-section-wrapper">
+          <div class="premium-blur-content">
+        {% endif %}
         <div class="summary-card">
           <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #3a5278; padding-bottom: 10px; margin-bottom: 14px; border-bottom: 1px solid #dce6f5;">{{ friction.get("title") or "Customer Friction Signals" }}</div>
 
@@ -1085,6 +1102,16 @@
             </div>
           {% endif %}
         </div>
+        {% if sections.get("is_free_preview") %}
+          </div>{# end premium-blur-content #}
+          <div class="premium-overlay">
+            <div class="premium-lock-icon">🔒</div>
+            <div class="premium-overlay-title">Friction Signals — Subscribers Only</div>
+            <div class="premium-overlay-body">Detailed complaint theme analysis across your market is available with a Pulse LCI subscription.</div>
+            <a class="premium-cta-btn" href="https://pulselci.com/#pricing">Unlock Full Report</a>
+          </div>
+        </div>{# end premium-section-wrapper #}
+        {% endif %}
       {% endif %}
 
       {% if review_pulse %}
@@ -1102,22 +1129,6 @@
             />
         </div>
       {% endif %}
-
-    {% if sections.get("is_free_preview") %}
-      </div>{# end premium-blur-content #}
-      <div class="premium-overlay">
-        <div class="premium-lock-icon">🔒</div>
-        <div class="premium-overlay-title">Market Intelligence — Subscribers Only</div>
-        <div class="premium-overlay-body">Customer perception analysis, friction signals, and competitive positioning themes are available with a Pulse LCI subscription.</div>
-        <a class="premium-cta-btn" href="https://pulselci.com/#pricing">Unlock Full Report</a>
-      </div>
-    </div>{# end premium-section-wrapper #}
-    {% endif %}
-
-    {% if sections.get("is_free_preview") %}
-    <div class="premium-section-wrapper">
-      <div class="premium-blur-content">
-    {% endif %}
 
     {% if experience.get("this_month_focus") %}
       <div class="section-title">Execution Plan</div>
