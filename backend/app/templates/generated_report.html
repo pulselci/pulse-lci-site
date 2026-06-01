@@ -919,14 +919,16 @@
           {% endif %}
         {% endfor %}
       {% else %}
-        {# No grouped_sections — build cards from flat_insights or this_month_focus #}
-        {% set fallback_items = flat_insights if flat_insights else (experience.get("this_month_focus") or []) %}
+        {# No grouped_sections — build cards from this_month_focus (richest data) or flat_insights #}
+        {% set focus_items = experience.get("this_month_focus") or [] %}
+        {% set fallback_items = focus_items if focus_items else flat_insights %}
         {% if fallback_items %}
           {% for item in fallback_items[:4] %}
-            {% set summary_text = item.get("summary") or item.get("action") or item.get("title") or "" %}
-            {% set why_text = item.get("why_it_matters") or item.get("implication") or "This signal helps clarify where to focus next." %}
-            {% set action_text = item.get("action") or item.get("recommended_action") or item.get("detail") or "Review this item and decide whether it changes messaging, operations, or monitoring." %}
-            {% set how_text = item.get("how_to_implement") or "" %}
+            {% set summary_text = item.get("action") or item.get("summary") or item.get("title") or "" %}
+            {% set detail = item.get("detail") or "" %}
+            {% set why_text = item.get("why_it_matters") or item.get("implication") or "This is a key growth lever identified from your current competitive position." %}
+            {% set action_text = item.get("recommended_action") or summary_text %}
+            {% set how_text = item.get("how_to_implement") or detail %}
             {% set priority = item.get("priority") or "Immediate" %}
 
             {% if loop.index0 == 0 %}
@@ -947,12 +949,10 @@
                     <div class="detail-label">Action</div>
                     <p class="detail-text">{{ action_text }}</p>
                   </div>
-                  {% if how_text %}
                   <div class="detail-col">
                     <div class="detail-label">How to implement</div>
-                    <p class="detail-text">{{ how_text }}</p>
+                    <p class="detail-text">{{ how_text or "Apply this to your Google Business profile, website, and review coaching strategy." }}</p>
                   </div>
-                  {% endif %}
                 </div>
               </div>
             {% else %}
