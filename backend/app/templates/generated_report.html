@@ -662,18 +662,33 @@
 
           <div class="summary-side">
             <div class="summary-side-box">
-              <div class="summary-side-item">
-                <div class="meta-label">Supporting signals</div>
-                <div class="meta-value">{{ immediate_items|length }}</div>
-              </div>
-              <div class="summary-side-item">
-                <div class="meta-label">Position context</div>
-                <div class="meta-value">{{ _pc.count }}</div>
-              </div>
-              <div class="summary-side-item">
-                <div class="meta-label">Monitor items</div>
-                <div class="meta-value">{{ monitor_items|length }}</div>
-              </div>
+              {# Show position context bullets — far more useful than raw counts #}
+              {% set pos_ctx = experience.get("position_context") or (experience.get("summary_side") or {}).get("position_context") or [] %}
+              {% if pos_ctx %}
+                <div class="meta-label" style="margin-bottom:8px;">Market Position</div>
+                {% for bullet in pos_ctx %}
+                  <div class="summary-side-item" style="font-size:11px; color:#344054; line-height:1.5; margin-bottom:10px;">{{ bullet }}</div>
+                {% endfor %}
+              {% else %}
+                {# Fallback: derive from SOV data directly #}
+                {% set _you_side = sov_rows | selectattr("is_business") | list | first %}
+                {% set _leader_side = sov_rows[0] if sov_rows else none %}
+                {% if _you_side and _leader_side %}
+                  <div class="meta-label" style="margin-bottom:8px;">Market Position</div>
+                  {% if _leader_side.get("is_business") %}
+                    <div class="summary-side-item" style="font-size:11px; color:#344054; line-height:1.5; margin-bottom:10px;">You lead the market with {{ _you_side.get("reviews_total") or 0 }} reviews and {{ (_you_side.get("share_pct") or 0) | round(0) | int }}% review share.</div>
+                  {% else %}
+                    {% set _gap = (_leader_side.get("reviews_total") or 0) - (_you_side.get("reviews_total") or 0) %}
+                    <div class="summary-side-item" style="font-size:11px; color:#344054; line-height:1.5; margin-bottom:10px;">You are ranked #{{ _you_side.get("rank") or "?" }} with {{ _you_side.get("reviews_total") or 0 }} reviews and {{ (_you_side.get("share_pct") or 0) | round(0) | int }}% review share.</div>
+                    <div class="summary-side-item" style="font-size:11px; color:#344054; line-height:1.5; margin-bottom:10px;">{{ _leader_side.get("competitor_name") or "The market leader" }} leads with {{ _leader_side.get("reviews_total") or 0 }} reviews — a {{ _gap }}-review gap to close.</div>
+                  {% endif %}
+                {% endif %}
+              {% endif %}
+              {# Monitor signal #}
+              {% if monitor_items %}
+                <div class="meta-label" style="margin-top:12px; margin-bottom:6px;">Watch</div>
+                <div style="font-size:11px; color:#344054; line-height:1.5;">{{ monitor_items[0].get("summary") or "" }}</div>
+              {% endif %}
             </div>
           </div>
         </div>
@@ -930,25 +945,25 @@
             {% if item.get("headline") %}
               {% set headline_text = item.get("headline") %}
             {% elif "review gap" in _at or ("close" in _at and "gap" in _at) or ("close" in _at and "review" in _at) %}
-              {% set headline_text = "Close Your Review Gap" %}
+              {% set headline_text = "Your #1 Priority: Win the Review Race" %}
             {% elif "defend" in _at or ("protect" in _at and "lead" in _at) %}
-              {% set headline_text = "Defend Your Market Lead" %}
+              {% set headline_text = "You're #1 — Here's How to Stay There" %}
             {% elif "extend" in _at and "lead" in _at %}
-              {% set headline_text = "Extend Your Market Lead" %}
+              {% set headline_text = "Extend Your Lead Before Competitors Catch Up" %}
             {% elif "maintain" in _at and ("lead" in _at or "review" in _at) %}
-              {% set headline_text = "Protect Your #1 Position" %}
+              {% set headline_text = "Protect Your #1 Market Position" %}
             {% elif "positioning" in _at or ("reinforce" in _at and "advantage" in _at) %}
-              {% set headline_text = "Sharpen Your Positioning" %}
+              {% set headline_text = "Customers Can't Choose You If They Can't See Your Edge" %}
             {% elif "credibility" in _at or "trust" in _at or "proof" in _at %}
-              {% set headline_text = "Strengthen Trust Signals" %}
+              {% set headline_text = "Your Reviews Are an Asset — Start Using Them" %}
             {% elif "speed" in _at or "convenience" in _at %}
-              {% set headline_text = "Lead on Speed & Convenience" %}
+              {% set headline_text = "Speed & Convenience Are Your Competitive Edge" %}
             {% elif "rank" in _at or "tier" in _at %}
-              {% set headline_text = "Improve Your Market Rank" %}
+              {% set headline_text = "One Position Separates You From the Leaders" %}
             {% elif "review" in _at and ("grow" in _at or "generate" in _at or "consistent" in _at) %}
-              {% set headline_text = "Build Review Momentum" %}
+              {% set headline_text = "Consistent Review Growth Beats a One-Time Surge" %}
             {% else %}
-              {% set headline_text = "Key Growth Opportunity" %}
+              {% set headline_text = "Your Biggest Growth Lever This Month" %}
             {% endif %}
             {% set detail = item.get("detail") or "" %}
             {% set why_text = item.get("why_it_matters") or item.get("implication") or "This is a key growth lever identified from your current competitive position." %}
