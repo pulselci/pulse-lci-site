@@ -917,166 +917,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Subscribe Modal -->
-        <div id="subscribeModal" style="display:none;position:fixed;inset:0;background:rgba(10,20,40,0.55);z-index:9999;align-items:center;justify-content:center;padding:16px;">
-          <div style="background:white;border-radius:16px;width:100%;max-width:520px;padding:36px 32px;position:relative;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.18);">
-            <button onclick="closeSubscribeModal()" style="position:absolute;top:16px;right:18px;background:none;border:none;font-size:22px;cursor:pointer;color:#64748b;line-height:1;">✕</button>
-
-            <div id="modalPlanBadge" style="display:inline-flex;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:14px;"></div>
-            <h2 style="font-size:22px;font-weight:800;color:#10233f;margin:0 0 4px;">Start your subscription</h2>
-            <p style="color:#64748b;font-size:14px;margin:0 0 24px;">You'll be redirected to Stripe to complete payment securely.</p>
-
-            <form id="subscribeForm" onsubmit="handleSubscribe(event)">
-              <input type="hidden" id="selectedPlan" name="plan" value="starter" />
-
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-                <div>
-                  <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Your name *</label>
-                  <input name="contact_name" type="text" required placeholder="Jane Smith" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;" />
-                </div>
-                <div>
-                  <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Phone</label>
-                  <input name="contact_phone" type="tel" placeholder="(555) 555-5555" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;" />
-                </div>
-              </div>
-
-              <div style="margin-bottom:12px;">
-                <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Email address *</label>
-                <input name="contact_email" type="email" required placeholder="you@business.com" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;" />
-              </div>
-
-              <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:12px;">
-                <div>
-                  <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Business name *</label>
-                  <input name="business_name" type="text" required placeholder="Acme Dental" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;" />
-                </div>
-                <div>
-                  <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">City *</label>
-                  <input name="city" type="text" required placeholder="Cincinnati" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;" />
-                </div>
-                <div>
-                  <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">State *</label>
-                  <input name="state" type="text" required placeholder="OH" maxlength="2" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;text-transform:uppercase;" />
-                </div>
-              </div>
-
-              <div style="margin-bottom:20px;">
-                <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Competitors to track <span style="font-weight:400;color:#9ca3af;">(add up to 3)</span></label>
-                <input name="competitor_1" type="text" placeholder="Competitor 1" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;margin-bottom:8px;" />
-                <input name="competitor_2" type="text" placeholder="Competitor 2" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;margin-bottom:8px;" />
-                <input name="competitor_3" type="text" placeholder="Competitor 3" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;" />
-              </div>
-
-              <div id="subscribeError" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:13px;color:#b91c1c;margin-bottom:14px;"></div>
-
-              <button type="submit" id="subscribeSubmitBtn" style="width:100%;padding:14px;background:#2563eb;color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:0.01em;">
-                Continue to Payment →
-              </button>
-              <p style="text-align:center;font-size:12px;color:#9ca3af;margin:10px 0 0;">Secured by Stripe · Cancel anytime</p>
-            </form>
-          </div>
-        </div>
-
-        <style>
-          .btn-subscribe {
-            width: 100%;
-            padding: 12px 20px;
-            background: #10233f;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: background 0.15s;
-          }
-          .btn-subscribe:hover { background: #1e3a5f; }
-          .btn-subscribe-featured {
-            background: #2563eb;
-          }
-          .btn-subscribe-featured:hover { background: #1d4ed8; }
-        </style>
-
-        <script>
-          const API = 'https://pulse-lci-api.onrender.com';
-
-          function openSubscribeModal(plan) {
-            document.getElementById('selectedPlan').value = plan;
-            const badge = document.getElementById('modalPlanBadge');
-            if (plan === 'growth') {
-              badge.textContent = 'Growth — $179/month';
-              badge.style.background = '#dbeafe';
-              badge.style.color = '#1d4ed8';
-            } else {
-              badge.textContent = 'Starter — $99/month';
-              badge.style.background = '#f1f5f9';
-              badge.style.color = '#334155';
-            }
-            document.getElementById('subscribeError').style.display = 'none';
-            document.getElementById('subscribeModal').style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-          }
-
-          function closeSubscribeModal() {
-            document.getElementById('subscribeModal').style.display = 'none';
-            document.body.style.overflow = '';
-          }
-
-          // Close on backdrop click
-          document.getElementById('subscribeModal').addEventListener('click', function(e) {
-            if (e.target === this) closeSubscribeModal();
-          });
-
-          async function handleSubscribe(e) {
-            e.preventDefault();
-            const form = e.target;
-            const btn = document.getElementById('subscribeSubmitBtn');
-            const errBox = document.getElementById('subscribeError');
-            errBox.style.display = 'none';
-            btn.disabled = true;
-            btn.textContent = 'Setting up your account…';
-
-            const competitors = [
-              form.competitor_1.value.trim(),
-              form.competitor_2.value.trim(),
-              form.competitor_3.value.trim(),
-            ].filter(Boolean);
-
-            const payload = {
-              plan: form.plan.value,
-              contact_name: form.contact_name.value.trim(),
-              contact_email: form.contact_email.value.trim(),
-              contact_phone: form.contact_phone.value.trim(),
-              business_name: form.business_name.value.trim(),
-              city: form.city.value.trim(),
-              state: form.state.value.trim().toUpperCase(),
-              competitor_names: competitors,
-            };
-
-            try {
-              const res = await fetch(`${API}/billing/subscribe`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-              });
-              const data = await res.json();
-              if (!res.ok) {
-                throw new Error(data.detail || 'Something went wrong. Please try again.');
-              }
-              if (data.checkout_url) {
-                window.location.href = data.checkout_url;
-              } else {
-                throw new Error('No checkout URL returned. Please contact support.');
-              }
-            } catch (err) {
-              errBox.textContent = err.message;
-              errBox.style.display = 'block';
-              btn.disabled = false;
-              btn.textContent = 'Continue to Payment →';
-            }
-          }
-        </script>
       </div>
     </section>
 
@@ -1228,6 +1068,160 @@
         submitBtn.textContent = "Request my free report";
       });
     });
+  </script>
+
+  <!-- ── Subscribe Modal (lives at body level so position:fixed works correctly) ── -->
+  <style>
+    .btn-subscribe {
+      width: 100%; padding: 12px 20px; background: #10233f; color: white;
+      border: none; border-radius: 8px; font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .btn-subscribe:hover { background: #1e3a5f; }
+    .btn-subscribe-featured { background: #2563eb; }
+    .btn-subscribe-featured:hover { background: #1d4ed8; }
+    #subscribeModal { display: none; position: fixed; inset: 0; background: rgba(10,20,40,0.6);
+      z-index: 99999; align-items: center; justify-content: center; padding: 16px; }
+    #subscribeModal.open { display: flex; }
+  </style>
+
+  <div id="subscribeModal">
+    <div style="background:white;border-radius:16px;width:100%;max-width:520px;padding:36px 32px;position:relative;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.2);">
+      <button onclick="closeSubscribeModal()" style="position:absolute;top:16px;right:18px;background:none;border:none;font-size:22px;cursor:pointer;color:#64748b;line-height:1;">✕</button>
+      <div id="modalPlanBadge" style="display:inline-flex;padding:4px 14px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:14px;"></div>
+      <h2 style="font-size:22px;font-weight:800;color:#10233f;margin:0 0 4px;">Start your subscription</h2>
+      <p style="color:#64748b;font-size:14px;margin:0 0 24px;">You'll be redirected to Stripe to complete payment securely.</p>
+
+      <form id="subscribeForm" onsubmit="handleSubscribe(event)">
+        <input type="hidden" id="selectedPlan" name="plan" value="starter" />
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Your name *</label>
+            <input name="contact_name" type="text" required placeholder="Jane Smith" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;" />
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Phone</label>
+            <input name="contact_phone" type="tel" placeholder="(555) 555-5555" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;" />
+          </div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Email address *</label>
+          <input name="contact_email" type="email" required placeholder="you@business.com" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;" />
+        </div>
+
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Business name *</label>
+            <input name="business_name" type="text" required placeholder="Acme Dental" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;" />
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">City *</label>
+            <input name="city" type="text" required placeholder="Cincinnati" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;" />
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">State *</label>
+            <input name="state" type="text" required placeholder="OH" maxlength="2" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;text-transform:uppercase;" />
+          </div>
+        </div>
+
+        <div style="margin-bottom:20px;">
+          <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Competitors to track <span style="font-weight:400;color:#9ca3af;">(up to 3)</span></label>
+          <input name="competitor_1" type="text" placeholder="Competitor 1" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;margin-bottom:8px;" />
+          <input name="competitor_2" type="text" placeholder="Competitor 2" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;margin-bottom:8px;" />
+          <input name="competitor_3" type="text" placeholder="Competitor 3" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;" />
+        </div>
+
+        <div id="subscribeError" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:13px;color:#b91c1c;margin-bottom:14px;"></div>
+
+        <button type="submit" id="subscribeSubmitBtn" style="width:100%;padding:14px;background:#2563eb;color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;">
+          Continue to Payment →
+        </button>
+        <p style="text-align:center;font-size:12px;color:#9ca3af;margin:10px 0 0;">Secured by Stripe · Cancel anytime</p>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const PULSE_API = 'https://pulse-lci-api.onrender.com';
+
+    function openSubscribeModal(plan) {
+      document.getElementById('selectedPlan').value = plan;
+      const badge = document.getElementById('modalPlanBadge');
+      if (plan === 'growth') {
+        badge.textContent = 'Growth — $179/month';
+        badge.style.cssText += ';background:#dbeafe;color:#1d4ed8;';
+      } else {
+        badge.textContent = 'Starter — $99/month';
+        badge.style.cssText += ';background:#f1f5f9;color:#334155;';
+      }
+      document.getElementById('subscribeError').style.display = 'none';
+      document.getElementById('subscribeForm').reset();
+      document.getElementById('selectedPlan').value = plan;
+      document.getElementById('subscribeModal').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeSubscribeModal() {
+      document.getElementById('subscribeModal').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    document.getElementById('subscribeModal').addEventListener('click', function(e) {
+      if (e.target === this) closeSubscribeModal();
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeSubscribeModal();
+    });
+
+    async function handleSubscribe(e) {
+      e.preventDefault();
+      const form = e.target;
+      const btn = document.getElementById('subscribeSubmitBtn');
+      const errBox = document.getElementById('subscribeError');
+      errBox.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Setting up your account…';
+
+      const competitors = [
+        form.competitor_1.value.trim(),
+        form.competitor_2.value.trim(),
+        form.competitor_3.value.trim(),
+      ].filter(Boolean);
+
+      const payload = {
+        plan: document.getElementById('selectedPlan').value,
+        contact_name: form.contact_name.value.trim(),
+        contact_email: form.contact_email.value.trim(),
+        contact_phone: form.contact_phone.value.trim(),
+        business_name: form.business_name.value.trim(),
+        city: form.city.value.trim(),
+        state: form.state.value.trim().toUpperCase(),
+        competitor_names: competitors,
+      };
+
+      try {
+        const res = await fetch(`${PULSE_API}/billing/subscribe`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Something went wrong. Please try again.');
+        if (data.checkout_url) {
+          window.location.href = data.checkout_url;
+        } else {
+          throw new Error('No checkout URL returned. Please contact support.');
+        }
+      } catch (err) {
+        errBox.textContent = err.message;
+        errBox.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Continue to Payment →';
+      }
+    }
   </script>
 
 </body>
