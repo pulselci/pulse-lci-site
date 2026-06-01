@@ -662,33 +662,18 @@
 
           <div class="summary-side">
             <div class="summary-side-box">
-              {# Show position context bullets — far more useful than raw counts #}
-              {% set pos_ctx = experience.get("position_context") or (experience.get("summary_side") or {}).get("position_context") or [] %}
-              {% if pos_ctx %}
-                <div class="meta-label" style="margin-bottom:8px;">Market Position</div>
-                {% for bullet in pos_ctx %}
-                  <div class="summary-side-item" style="font-size:11px; color:#344054; line-height:1.5; margin-bottom:10px;">{{ bullet }}</div>
-                {% endfor %}
-              {% else %}
-                {# Fallback: derive from SOV data directly #}
-                {% set _you_side = sov_rows | selectattr("is_business") | list | first %}
-                {% set _leader_side = sov_rows[0] if sov_rows else none %}
-                {% if _you_side and _leader_side %}
-                  <div class="meta-label" style="margin-bottom:8px;">Market Position</div>
-                  {% if _leader_side.get("is_business") %}
-                    <div class="summary-side-item" style="font-size:11px; color:#344054; line-height:1.5; margin-bottom:10px;">You lead the market with {{ _you_side.get("reviews_total") or 0 }} reviews and {{ (_you_side.get("share_pct") or 0) | round(0) | int }}% review share.</div>
-                  {% else %}
-                    {% set _gap = (_leader_side.get("reviews_total") or 0) - (_you_side.get("reviews_total") or 0) %}
-                    <div class="summary-side-item" style="font-size:11px; color:#344054; line-height:1.5; margin-bottom:10px;">You are ranked #{{ _you_side.get("rank") or "?" }} with {{ _you_side.get("reviews_total") or 0 }} reviews and {{ (_you_side.get("share_pct") or 0) | round(0) | int }}% review share.</div>
-                    <div class="summary-side-item" style="font-size:11px; color:#344054; line-height:1.5; margin-bottom:10px;">{{ _leader_side.get("competitor_name") or "The market leader" }} leads with {{ _leader_side.get("reviews_total") or 0 }} reviews — a {{ _gap }}-review gap to close.</div>
-                  {% endif %}
-                {% endif %}
-              {% endif %}
-              {# Monitor signal #}
-              {% if monitor_items %}
-                <div class="meta-label" style="margin-top:12px; margin-bottom:6px;">Watch</div>
-                <div style="font-size:11px; color:#344054; line-height:1.5;">{{ monitor_items[0].get("summary") or "" }}</div>
-              {% endif %}
+              <div class="summary-side-item">
+                <div class="meta-label">Supporting signals</div>
+                <div class="meta-value">{{ immediate_items|length }}</div>
+              </div>
+              <div class="summary-side-item">
+                <div class="meta-label">Position context</div>
+                <div class="meta-value">{{ _pc.count }}</div>
+              </div>
+              <div class="summary-side-item">
+                <div class="meta-label">Monitor items</div>
+                <div class="meta-value">{{ monitor_items|length }}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -731,7 +716,7 @@
       </div>
     {% endif %}
 
-      {% if flat_insights %}
+      {% if flat_insights or sov_rows %}
         <div class="priority-grid">
           <div class="priority-card">
             <h3>Supporting Signals</h3>
