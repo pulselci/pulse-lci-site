@@ -376,6 +376,7 @@ def create_checkout_session(payload: CreateCheckoutSessionIn):
             "mode": "subscription",
             "success_url": settings.stripe_success_url,
             "cancel_url": settings.stripe_cancel_url,
+            "allow_promotion_codes": True,
             "line_items": [
                 {
                     "price": price_id,
@@ -540,12 +541,108 @@ async def stripe_webhook(request: Request):
                     stripe_price_id=str(price_id) if price_id else None,
                     billing_status=str(status) if status else None,
                     billing_current_period_end=current_period_end_dt,
-                    is_active=(
-                        False
-                        if event_type == "customer.subscription.deleted"
-                        else _is_billing_active(status)
-                    ),
+                    is_active=_is_billing_active(status),
                 )
+
+                # ── Enable schedule + set next run to 1st of next month ──
+                try:
+                    from app.services.report_periods import Schedule, compute_next_run_at
+                    from app.services.report_schedule_service import upsert_schedule_for_business
+                    from datetime import date
+                    import calendar
+
+                    now = datetime.now(timezone.utc)
+                    # First day of next month at 8am ET
+                    if now.month == 12:
+                        first_next = datetime(now.year + 1, 1, 1, 8, 0, tzinfo=timezone.utc)
+                    else:
+                        first_next = datetime(now.year, now.month + 1, 1, 8, 0, tzinfo=timezone.utc)
+
+                    upsert_schedule_for_business(
+                        UUID(str(business_id)),
+                        frequency="monthly",
+                        day_of_week=None,
+                        day_of_month=1,
+                        hour=8,
+                        minute=0,
+                        timezone="America/New_York",
+                        is_enabled=True,
+                        next_run_at=first_next,
+                    )
+                    logger.info("Schedule enabled for new subscriber %s, next run %s", business_id, first_next)
+                except Exception as exc:
+                    logger.warning("Could not enable schedule for %s: %s", business_id, exc)
+
+                # ── Generate and email first report immediately ──
+                try:
+                    report = generate_business_report(UUID(str(business_id)))
+                    if hasattr(report, "model_dump"):
+                        report_dict = report.model_dump()
+                    elif hasattr(report, "dict"):
+                        report_dict = report.dict()
+                    else:
+                        report_dict = report if isinstance(report, dict) else {}
+
+                    report_id = report_dict.get("id")
+
+                    # Remove free-preview flag — they're now a paying subscriber
+                    if report_id:
+                        with get_conn() as conn:
+                            with conn.cursor() as cur:
+                                cur.execute(
+                                    """
+                                    UPDATE generated_reports
+                                    SET sections = sections - 'is_free_preview'
+                                    WHERE id = %s
+                                    """,
+                                    (str(report_id),),
+                                )
+                            conn.commit()
+
+                        # Look up contact email and name from business notes
+                        contact_email = None
+                        contact_name = "there"
+                        business_name_val = ""
+                        with get_conn() as conn:
+                            with conn.cursor() as cur:
+                                cur.execute(
+                                    "SELECT name, notes FROM businesses WHERE id = %s",
+                                    (str(business_id),),
+                                )
+                                biz = cur.fetchone()
+                                if biz:
+                                    business_name_val = biz.get("name") or ""
+                                    notes = biz.get("notes") or ""
+                                    # Extract email from notes: "Contact: Name <email>"
+                                    import re as _re
+                                    m = _re.search(r'<([^>]+@[^>]+)>', notes)
+                                    if m:
+                                        contact_email = m.group(1)
+                                    m2 = _re.search(r'Contact:\s*([^<\n]+)', notes)
+                                    if m2:
+                                        contact_name = m2.group(1).strip().split()[0]
+
+                        if contact_email:
+                            from app.api.generated_reports import send_generated_report_email, SendReportRequest
+                            send_generated_report_email(
+                                UUID(str(report_id)),
+                                SendReportRequest(
+                                    to_email=contact_email,
+                                    subject=f"Your Pulse LCI Report is Ready — {business_name_val}",
+                                    body_text=(
+                                        f"Hi {contact_name},\n\n"
+                                        "Your first Pulse LCI competitive intelligence report is attached. "
+                                        "It shows your current market position, how you compare to your competitors, "
+                                        "and your top priorities for this month.\n\n"
+                                        "Your next report will arrive on the 1st of next month.\n\n"
+                                        "— Pulse LCI"
+                                    ),
+                                ),
+                            )
+                            logger.info("First report emailed to %s for business %s", contact_email, business_id)
+
+                except Exception as exc:
+                    logger.error("Could not generate/email first report for %s: %s", business_id, exc)
 
         elif event_type in {
             "customer.subscription.created",
