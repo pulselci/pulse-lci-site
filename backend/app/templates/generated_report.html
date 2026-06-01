@@ -919,49 +919,92 @@
           {% endif %}
         {% endfor %}
       {% else %}
-        {# No grouped_sections — for free preview use this_month_focus items as placeholder cards #}
-        {% set focus_items = experience.get("this_month_focus") or [] %}
-        {% if sections.get("is_free_preview") and focus_items %}
-          {% for item in focus_items %}
-            {% set action_text = item.get("action") or item.get("summary") or item.get("title") or "" %}
-            {% set detail_text = item.get("detail") or "" %}
+        {# No grouped_sections — build cards from flat_insights or this_month_focus #}
+        {% set fallback_items = flat_insights if flat_insights else (experience.get("this_month_focus") or []) %}
+        {% if fallback_items %}
+          {% for item in fallback_items[:4] %}
+            {% set summary_text = item.get("summary") or item.get("action") or item.get("title") or "" %}
+            {% set why_text = item.get("why_it_matters") or item.get("implication") or "This signal helps clarify where to focus next." %}
+            {% set action_text = item.get("action") or item.get("recommended_action") or item.get("detail") or "Review this item and decide whether it changes messaging, operations, or monitoring." %}
+            {% set how_text = item.get("how_to_implement") or "" %}
+            {% set priority = item.get("priority") or "Immediate" %}
+
             {% if loop.index0 == 0 %}
-              {# First item — show fully #}
-              <div class="insight-card" style="margin-bottom:10px;">
+              {# First card — fully visible #}
+              <div class="insight-card" style="margin-bottom:12px;">
                 <div class="insight-top">
-                  <div class="insight-title-col"><p class="insight-summary">{{ action_text }}</p></div>
-                  <div class="insight-badge-col"><span class="badge badge-immediate">Immediate</span></div>
-                </div>
-                {% if detail_text %}
-                <div class="detail-grid">
-                  <div class="detail-col">
-                    <div class="detail-label">Action</div>
-                    <p class="detail-text">{{ detail_text }}</p>
+                  <div class="insight-title-col"><p class="insight-summary">{{ summary_text }}</p></div>
+                  <div class="insight-badge-col">
+                    <span class="badge badge-immediate">Immediate</span>
                   </div>
                 </div>
-                {% endif %}
+                <div class="detail-grid">
+                  <div class="detail-col">
+                    <div class="detail-label">Why it matters</div>
+                    <p class="detail-text">{{ why_text }}</p>
+                  </div>
+                  <div class="detail-col">
+                    <div class="detail-label">Action</div>
+                    <p class="detail-text">{{ action_text }}</p>
+                  </div>
+                  {% if how_text %}
+                  <div class="detail-col">
+                    <div class="detail-label">How to implement</div>
+                    <p class="detail-text">{{ how_text }}</p>
+                  </div>
+                  {% endif %}
+                </div>
               </div>
             {% else %}
-              {# Remaining items — blurred #}
-              <div class="premium-section-wrapper" style="margin-bottom:10px;">
+              {# Remaining cards — blurred #}
+              {% if sections.get("is_free_preview") %}
+              <div class="premium-section-wrapper" style="margin-bottom:12px;">
                 <div class="premium-blur-content">
                   <div class="insight-card">
                     <div class="insight-top">
-                      <div class="insight-title-col"><p class="insight-summary">{{ action_text }}</p></div>
+                      <div class="insight-title-col"><p class="insight-summary">{{ summary_text }}</p></div>
                       <div class="insight-badge-col"><span class="badge badge-next">Next</span></div>
+                    </div>
+                    <div class="detail-grid">
+                      <div class="detail-col">
+                        <div class="detail-label">Why it matters</div>
+                        <p class="detail-text">{{ why_text }}</p>
+                      </div>
+                      <div class="detail-col">
+                        <div class="detail-label">Action</div>
+                        <p class="detail-text">{{ action_text }}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div class="premium-overlay" style="border-radius:6px;">
-                  <div class="premium-lock-icon" style="font-size:20px;margin-bottom:6px;">🔒</div>
-                  <div class="premium-overlay-title" style="font-size:13px;">Subscribers Only</div>
-                  <a class="premium-cta-btn" href="https://pulselci.com/#pricing">Unlock Full Report</a>
+                <div class="premium-overlay" style="border-radius:6px; padding:16px;">
+                  <div class="premium-lock-icon" style="font-size:22px;margin-bottom:6px;">🔒</div>
+                  <div class="premium-overlay-title" style="font-size:13px;margin-bottom:4px;">Subscribers Only</div>
+                  <a class="premium-cta-btn" href="https://pulselci.com/#pricing" style="font-size:11px;padding:6px 16px;">Unlock Full Report</a>
                 </div>
               </div>
+              {% else %}
+              <div class="insight-card" style="margin-bottom:12px;">
+                <div class="insight-top">
+                  <div class="insight-title-col"><p class="insight-summary">{{ summary_text }}</p></div>
+                  <div class="insight-badge-col"><span class="badge badge-next">Next</span></div>
+                </div>
+                <div class="detail-grid">
+                  <div class="detail-col">
+                    <div class="detail-label">Why it matters</div>
+                    <p class="detail-text">{{ why_text }}</p>
+                  </div>
+                  <div class="detail-col">
+                    <div class="detail-label">Action</div>
+                    <p class="detail-text">{{ action_text }}</p>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
             {% endif %}
           {% endfor %}
         {% else %}
-          <div class="empty-note">No client-facing report experience data was available for this report.</div>
+          <div class="empty-note">No strategic recommendations available for this report.</div>
         {% endif %}
       {% endif %}
     </div>
