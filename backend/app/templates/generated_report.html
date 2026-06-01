@@ -924,8 +924,8 @@
         {% set fallback_items = focus_items if focus_items else flat_insights %}
         {% if fallback_items %}
           {% for item in fallback_items[:4] %}
-            {% set headline_text = item.get("headline") or item.get("title") or item.get("summary") or "" %}
             {% set summary_text = item.get("action") or item.get("summary") or item.get("title") or "" %}
+            {% set headline_text = item.get("headline") or summary_text %}
             {% set detail = item.get("detail") or "" %}
             {% set why_text = item.get("why_it_matters") or item.get("implication") or "This is a key growth lever identified from your current competitive position." %}
             {% set action_text = item.get("recommended_action") or summary_text %}
@@ -987,7 +987,7 @@
               {% else %}
               <div class="insight-card" style="margin-bottom:12px;">
                 <div class="insight-top">
-                  <div class="insight-title-col"><p class="insight-summary">{{ summary_text }}</p></div>
+                  <div class="insight-title-col"><p class="insight-summary">{{ headline_text }}</p></div>
                   <div class="insight-badge-col"><span class="badge badge-next">Next</span></div>
                 </div>
                 <div class="detail-grid">
