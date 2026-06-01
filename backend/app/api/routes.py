@@ -134,6 +134,17 @@ class CreateCheckoutSessionIn(BaseModel):
     plan: str
 
 
+class SubscribeIn(BaseModel):
+    plan: str                        # "starter" or "growth"
+    contact_name: str
+    contact_email: str
+    contact_phone: str = ""
+    business_name: str
+    city: str
+    state: str
+    competitor_names: list[str] = []
+
+
 # --------------------
 # Health
 # --------------------
@@ -409,6 +420,46 @@ def create_checkout_session(payload: CreateCheckoutSessionIn):
 @router.post("/admin/billing/checkout-link")
 def admin_checkout_link(payload: CreateCheckoutSessionIn):
     return create_checkout_session(payload)
+
+
+@router.post("/billing/subscribe")
+def subscribe(payload: SubscribeIn):
+    """
+    New subscriber flow from the website pricing page.
+    1. Run prospect onboarding (create business + ingest data)
+    2. Create a Stripe Checkout session for the chosen plan
+    3. Return the Stripe checkout URL to redirect the browser
+    """
+    from app.services.prospect_onboarding_service import onboard_prospect
+
+    # Step 1 — onboard
+    result = onboard_prospect(
+        contact_name=payload.contact_name,
+        contact_email=payload.contact_email,
+        contact_phone=payload.contact_phone,
+        business_name=payload.business_name,
+        city=payload.city,
+        state=payload.state,
+        competitor_names=payload.competitor_names,
+    )
+
+    if not result.ok or not result.business_id:
+        raise HTTPException(status_code=500, detail=result.error or "Onboarding failed")
+
+    # Step 2 — create Stripe checkout session
+    checkout = create_checkout_session(
+        CreateCheckoutSessionIn(
+            business_id=UUID(result.business_id),
+            plan=payload.plan,
+        )
+    )
+
+    return {
+        "ok": True,
+        "business_id": result.business_id,
+        "checkout_url": checkout.get("url"),
+    }
+
 
 @router.post("/billing/webhook")
 async def stripe_webhook(request: Request):
