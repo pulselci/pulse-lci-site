@@ -925,7 +925,31 @@
         {% if fallback_items %}
           {% for item in fallback_items[:4] %}
             {% set summary_text = item.get("action") or item.get("summary") or item.get("title") or "" %}
-            {% set headline_text = item.get("headline") or summary_text %}
+            {# Derive a short strategic headline from the action text #}
+            {% set _at = summary_text | lower %}
+            {% if item.get("headline") %}
+              {% set headline_text = item.get("headline") %}
+            {% elif "review gap" in _at or ("close" in _at and "gap" in _at) or ("close" in _at and "review" in _at) %}
+              {% set headline_text = "Close Your Review Gap" %}
+            {% elif "defend" in _at or ("protect" in _at and "lead" in _at) %}
+              {% set headline_text = "Defend Your Market Lead" %}
+            {% elif "extend" in _at and "lead" in _at %}
+              {% set headline_text = "Extend Your Market Lead" %}
+            {% elif "maintain" in _at and ("lead" in _at or "review" in _at) %}
+              {% set headline_text = "Protect Your #1 Position" %}
+            {% elif "positioning" in _at or ("reinforce" in _at and "advantage" in _at) %}
+              {% set headline_text = "Sharpen Your Positioning" %}
+            {% elif "credibility" in _at or "trust" in _at or "proof" in _at %}
+              {% set headline_text = "Strengthen Trust Signals" %}
+            {% elif "speed" in _at or "convenience" in _at %}
+              {% set headline_text = "Lead on Speed & Convenience" %}
+            {% elif "rank" in _at or "tier" in _at %}
+              {% set headline_text = "Improve Your Market Rank" %}
+            {% elif "review" in _at and ("grow" in _at or "generate" in _at or "consistent" in _at) %}
+              {% set headline_text = "Build Review Momentum" %}
+            {% else %}
+              {% set headline_text = "Key Growth Opportunity" %}
+            {% endif %}
             {% set detail = item.get("detail") or "" %}
             {% set why_text = item.get("why_it_matters") or item.get("implication") or "This is a key growth lever identified from your current competitive position." %}
             {% set action_text = item.get("recommended_action") or summary_text %}
