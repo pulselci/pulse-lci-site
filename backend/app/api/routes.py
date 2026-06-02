@@ -585,14 +585,14 @@ async def stripe_webhook(request: Request):
 
                     report_id = report_dict.get("id")
 
-                    # Remove free-preview flag — they're now a paying subscriber
+                    # Explicitly mark as NOT free preview (set false, don't just remove)
                     if report_id:
                         with get_conn() as conn:
                             with conn.cursor() as cur:
                                 cur.execute(
                                     """
                                     UPDATE generated_reports
-                                    SET sections = sections - 'is_free_preview'
+                                    SET sections = sections || '{"is_free_preview": false}'::jsonb
                                     WHERE id = %s
                                     """,
                                     (str(report_id),),
@@ -750,6 +750,96 @@ async def stripe_webhook(request: Request):
         raise HTTPException(status_code=500, detail=f"Webhook processing failed: {e}")
 
     return {"received": True, "type": event_type}
+
+
+@router.post("/admin/business/{business_id}/send-full-report")
+def admin_send_full_report(business_id: str, x_admin_key: str = Header(None)):
+    """
+    Regenerate a full (unblurred) report for a subscriber and email it.
+    Use when a subscriber received a blurred free-preview report by mistake.
+    """
+    if x_admin_key != settings.admin_api_key:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    import re as _re
+
+    # 1. Enable schedule (ensure is_enabled=True)
+    try:
+        from datetime import date as _date
+        now = datetime.now(timezone.utc)
+        if now.month == 12:
+            first_next = datetime(now.year + 1, 1, 1, 8, 0, tzinfo=timezone.utc)
+        else:
+            first_next = datetime(now.year, now.month + 1, 1, 8, 0, tzinfo=timezone.utc)
+        upsert_schedule_for_business(
+            UUID(business_id),
+            frequency="monthly", day_of_week=None, day_of_month=1,
+            hour=8, minute=0, timezone="America/New_York",
+            is_enabled=True, next_run_at=first_next,
+        )
+    except Exception as exc:
+        logger.warning("Could not enable schedule for %s: %s", business_id, exc)
+
+    # 2. Generate fresh report (schedule is now enabled so is_free_preview=False)
+    report = generate_business_report(UUID(business_id))
+    if hasattr(report, "model_dump"):
+        report_dict = report.model_dump()
+    elif hasattr(report, "dict"):
+        report_dict = report.dict()
+    else:
+        report_dict = report if isinstance(report, dict) else {}
+
+    report_id = str(report_dict.get("id") or "")
+    if not report_id:
+        raise HTTPException(status_code=500, detail="Report generation failed")
+
+    # 3. Force is_free_preview=false in DB
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE generated_reports SET sections = sections || '{\"is_free_preview\": false}'::jsonb WHERE id = %s",
+                (report_id,),
+            )
+        conn.commit()
+
+    # 4. Look up contact info from business notes
+    contact_email = None
+    contact_name = "there"
+    business_name_val = ""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT name, notes FROM businesses WHERE id = %s", (business_id,))
+            biz = cur.fetchone()
+            if biz:
+                business_name_val = biz.get("name") or ""
+                notes = biz.get("notes") or ""
+                m = _re.search(r'<([^>]+@[^>]+)>', notes)
+                if m:
+                    contact_email = m.group(1)
+                m2 = _re.search(r'Contact:\s*([^<\n]+)', notes)
+                if m2:
+                    contact_name = m2.group(1).strip().split()[0]
+
+    if not contact_email:
+        return {"ok": True, "report_id": report_id, "emailed": False, "reason": "No email found in business notes"}
+
+    # 5. Email full report
+    from app.api.generated_reports import send_generated_report_email, SendReportRequest
+    send_generated_report_email(
+        UUID(report_id),
+        SendReportRequest(
+            to_email=contact_email,
+            subject=f"Your Pulse LCI Report — {business_name_val}",
+            body_text=(
+                f"Hi {contact_name},\n\n"
+                "Your full Pulse LCI competitive intelligence report is attached.\n\n"
+                "You'll receive an updated report on the 1st of every month.\n\n"
+                "— Pulse LCI"
+            ),
+        ),
+    )
+
+    return {"ok": True, "report_id": report_id, "emailed_to": contact_email}
 
 
 @router.get("/admin/billing/success", response_class=HTMLResponse)
