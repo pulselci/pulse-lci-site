@@ -447,7 +447,7 @@ def billing_portal(business_id: UUID):
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT stripe_customer_id, name FROM businesses WHERE id = %s",
+                "SELECT stripe_customer_id, stripe_subscription_id, name FROM businesses WHERE id = %s",
                 (str(business_id),),
             )
             row = cur.fetchone()
@@ -456,10 +456,23 @@ def billing_portal(business_id: UUID):
         raise HTTPException(status_code=404, detail="Business not found")
 
     stripe_customer_id = (row.get("stripe_customer_id") or "").strip()
+
+    # If customer ID not stored, look it up from the subscription
+    if not stripe_customer_id:
+        sub_id = (row.get("stripe_subscription_id") or "").strip()
+        if sub_id:
+            try:
+                stripe.api_key = settings.stripe_secret_key
+                sub = stripe.Subscription.retrieve(sub_id)
+                stripe_customer_id = sub.get("customer") or ""
+            except Exception:
+                pass
+
     if not stripe_customer_id:
         raise HTTPException(status_code=400, detail="No Stripe customer on file for this business")
 
     try:
+        stripe.api_key = settings.stripe_secret_key
         portal_session = stripe.billing_portal.Session.create(
             customer=stripe_customer_id,
             return_url=settings.stripe_cancel_url or "https://pulselci.com",

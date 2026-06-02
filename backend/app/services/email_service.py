@@ -19,16 +19,19 @@ class EmailSendResult:
 
 
 def _has_stripe_customer(business_id: str) -> bool:
-    """Returns True if the business has a Stripe customer ID (i.e. is a paying subscriber)."""
+    """Returns True if the business is an active paying subscriber."""
     try:
         with get_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    "SELECT stripe_customer_id FROM businesses WHERE id = %s",
+                    """
+                    SELECT 1 FROM report_schedules
+                    WHERE business_id = %s AND is_enabled = true
+                    LIMIT 1
+                    """,
                     (str(business_id),),
                 )
-                row = cur.fetchone()
-        return bool(row and row.get("stripe_customer_id"))
+                return cur.fetchone() is not None
     except Exception:
         return False
 
