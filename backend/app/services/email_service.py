@@ -18,6 +18,21 @@ class EmailSendResult:
     error: str | None = None
 
 
+def _has_stripe_customer(business_id: str) -> bool:
+    """Returns True if the business has a Stripe customer ID (i.e. is a paying subscriber)."""
+    try:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT stripe_customer_id FROM businesses WHERE id = %s",
+                    (str(business_id),),
+                )
+                row = cur.fetchone()
+        return bool(row and row.get("stripe_customer_id"))
+    except Exception:
+        return False
+
+
 def _log_report_delivery(
     report_id: UUID | str | None,
     recipient_email: str,
@@ -186,7 +201,7 @@ def send_report_email(
                 Manage or cancel your subscription
             </a>
         </div>
-        ''' if business_id else ''}
+        ''' if business_id and _has_stripe_customer(business_id) else ''}
 
         </div>
     </body>
