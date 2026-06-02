@@ -77,6 +77,7 @@ def send_report_email(
     report_id: UUID | str | None = None,
     business_name: Optional[str] = None,
     summary_text: Optional[str] = None,
+    business_id: Optional[str] = None,
 ) -> EmailSendResult:
     """
     Sends an email with a PDF attachment via SMTP.
@@ -177,6 +178,16 @@ def send_report_email(
             <strong>Pulse LCI Reports</strong>
             </p>
         </div>
+
+        {f'''
+        <div style="text-align: center; margin-top: 18px;">
+            <a href="https://pulse-lci-api.onrender.com/billing/portal/{business_id}"
+               style="font-size: 12px; color: #8a9ab5; text-decoration: underline;">
+                Manage or cancel your subscription
+            </a>
+        </div>
+        ''' if business_id else ''}
+
         </div>
     </body>
     </html>

@@ -433,6 +433,42 @@ def admin_checkout_link(payload: CreateCheckoutSessionIn):
     return create_checkout_session(payload)
 
 
+@router.get("/billing/portal/{business_id}")
+def billing_portal(business_id: UUID):
+    """
+    Creates a Stripe Customer Portal session for the given business and redirects
+    the subscriber there so they can manage or cancel their subscription.
+    """
+    from fastapi.responses import RedirectResponse
+
+    if not settings.stripe_secret_key:
+        raise HTTPException(status_code=500, detail="Missing STRIPE_SECRET_KEY")
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT stripe_customer_id, name FROM businesses WHERE id = %s",
+                (str(business_id),),
+            )
+            row = cur.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Business not found")
+
+    stripe_customer_id = (row.get("stripe_customer_id") or "").strip()
+    if not stripe_customer_id:
+        raise HTTPException(status_code=400, detail="No Stripe customer on file for this business")
+
+    try:
+        portal_session = stripe.billing_portal.Session.create(
+            customer=stripe_customer_id,
+            return_url=settings.stripe_cancel_url or "https://pulselci.com",
+        )
+        return RedirectResponse(url=portal_session.url)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Could not create portal session: {e}")
+
+
 @router.post("/billing/subscribe")
 def subscribe(payload: SubscribeIn):
     """

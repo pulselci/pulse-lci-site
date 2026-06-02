@@ -156,6 +156,7 @@ def send_generated_report_email(
         report_id=report_id,
         business_name=business_name,
         summary_text=report.get("summary_text"),
+        business_id=str(report["business_id"]),
     )
 
     if not result.ok:
