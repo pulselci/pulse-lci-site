@@ -678,7 +678,7 @@
       {% set _owner_for_disclaimer = sov_rows|selectattr("is_business")|list|first if sov_rows else none %}
       {% if _owner_for_disclaimer and (_owner_for_disclaimer.get("reviews_delta_30d") is none or (_owner_for_disclaimer.get("reviews_delta_30d") | int) == 0) %}
         <div style="margin:8px 0 10px; padding:10px 14px; background:#fffbeb; border:1px solid #fde68a; border-radius:8px; font-size:12px; color:#92400e; line-height:1.6;">
-          <strong>📊 This is your baseline report.</strong> Review movement data (reviews gained, share change, and Review Pulse trend) will appear starting with your next report once 30 days of tracking data has been collected.
+          <strong>Note: This is your baseline report.</strong> Review movement data (reviews gained, share change, and Review Pulse trend) will appear starting with your next report once 30 days of tracking data has been collected.
         </div>
       {% endif %}
 
