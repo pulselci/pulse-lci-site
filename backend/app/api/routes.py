@@ -770,24 +770,21 @@ def billing_checkout_success(session_id: str, redirect: str | None = None):
     stripe.api_key = settings.stripe_secret_key
 
     try:
+        print(f"[CHECKOUT-SUCCESS] session_id={session_id}", flush=True)
         session = _stripe_obj_to_dict(stripe.checkout.Session.retrieve(session_id))
         business_id = session.get("client_reference_id")
+        print(f"[CHECKOUT-SUCCESS] business_id={business_id}", flush=True)
+
         if not business_id:
-            logger.warning("checkout-success: no business_id in session %s", session_id)
+            print(f"[CHECKOUT-SUCCESS] ERROR: no business_id in session {session_id}", flush=True)
             return RedirectResponse(url=welcome_url)
 
-        # Run full activation in background so browser redirects immediately
-        import threading
-        def _activate():
-            try:
-                _activate_subscriber(business_id)
-            except Exception as exc:
-                logger.error("checkout-success activation failed for %s: %s", business_id, exc)
-
-        threading.Thread(target=_activate, daemon=True).start()
+        _activate_subscriber(business_id)
+        print(f"[CHECKOUT-SUCCESS] activation complete for {business_id}", flush=True)
 
     except Exception as exc:
-        logger.error("checkout-success error: %s", exc)
+        import traceback
+        print(f"[CHECKOUT-SUCCESS] ERROR: {exc}\n{traceback.format_exc()}", flush=True)
 
     return RedirectResponse(url=welcome_url)
 
@@ -795,6 +792,7 @@ def billing_checkout_success(session_id: str, redirect: str | None = None):
 def _activate_subscriber(business_id: str):
     """Enable schedule, generate full report, email it."""
     import re as _re
+    print(f"[ACTIVATE] START business_id={business_id}", flush=True)
 
     # 1. Enable schedule
     now = datetime.now(timezone.utc)
@@ -856,6 +854,7 @@ def _activate_subscriber(business_id: str):
         return
 
     # 5. Email full report
+    print(f"[ACTIVATE] emailing report {report_id} to {contact_email}", flush=True)
     from app.api.generated_reports import send_generated_report_email, SendReportRequest
     send_generated_report_email(
         UUID(report_id),
@@ -872,7 +871,7 @@ def _activate_subscriber(business_id: str):
             ),
         ),
     )
-    logger.info("Full report emailed to %s for business %s", contact_email, business_id)
+    print(f"[ACTIVATE] DONE — full report emailed to {contact_email} for {business_id}", flush=True)
 
 
 @router.post("/admin/business/{business_id}/send-full-report")
