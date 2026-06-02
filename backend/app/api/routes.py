@@ -3884,6 +3884,10 @@ def generate_business_report(
             summary_text = _replace_patient_terms(summary_text or "", customer_label)
 
         print("\n=== REPORT DEBUG ===")
+        print("business_name:", business_name)
+        print("customer_label:", customer_label)
+        perception_body = (sections.get("customer_perception_insights") or {}).get("body") or ""
+        print("perception_body_preview:", perception_body[:120])
         print("competitor_deltas:", len(competitor_deltas))
         print("insights:", len(sections.get("insights", [])))
         print("money_insights:", len([i for i in sections.get("insights", []) if i.get("type") == "money"]))
