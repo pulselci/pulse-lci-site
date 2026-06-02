@@ -504,7 +504,7 @@
 
           <p class="subtitle">
           <p class="subtitle">
-            Deterministic competitive positioning report built from market movement, review trends, and customer perception signals.
+            Deterministic competitive positioning report built from market movement, review trends, and {{ report.sections.get("customer_label", "customer") }} perception signals.
           </p>
         </div>
 
@@ -943,7 +943,7 @@
             {% elif "maintain" in _at and ("lead" in _at or "review" in _at) %}
               {% set headline_text = "Protect Your #1 Market Position" %}
             {% elif "positioning" in _at or ("reinforce" in _at and "advantage" in _at) %}
-              {% set headline_text = "Customers Can't Choose You If They Can't See Your Edge" %}
+              {% set headline_text = (report.sections.get("customer_label", "customers") | capitalize) + " Can't Choose You If They Can't See Your Edge" %}
             {% elif "credibility" in _at or "trust" in _at or "proof" in _at %}
               {% set headline_text = "Your Reviews Are an Asset — Start Using Them" %}
             {% elif "speed" in _at or "convenience" in _at %}
@@ -963,11 +963,11 @@
             {% elif "review" in _at2 and "lead" in _at2 %}
               {% set why_text = "Review volume is the single most visible trust signal for new patients comparing you against competitors." %}
             {% elif "review" in _at2 and ("gap" in _at2 or "behind" in _at2) %}
-              {% set why_text = "Closing the review gap is the fastest way to shift market share in your favor — customers use review count as a proxy for popularity." %}
+              {% set why_text = "Closing the review gap is the fastest way to shift market share in your favor — " + report.sections.get("customer_label", "customers") + " use review count as a proxy for popularity." %}
             {% elif "positioning" in _at2 or "advantage" in _at2 or "words" in _at2 %}
-              {% set why_text = "How you're described in reviews shapes how new customers perceive you before they ever contact you." %}
+              {% set why_text = "How you're described in reviews shapes how new " + report.sections.get("customer_label", "customers") + " perceive you before they ever contact you." %}
             {% elif "credibility" in _at2 or "trust" in _at2 or "presented" in _at2 %}
-              {% set why_text = "Customers compare you side by side before making a decision — your trust signals need to be immediately visible." %}
+              {% set why_text = (report.sections.get("customer_label", "customers") | capitalize) + " compare you side by side before making a decision — your trust signals need to be immediately visible." %}
             {% else %}
               {% set why_text = "Acting on this now compounding advantage over competitors who aren't paying attention to these signals." %}
             {% endif %}
@@ -1062,7 +1062,7 @@
 
       {# Customer Perception Narrative — always visible #}
       <div class="summary-card">
-        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #3a5278; padding-bottom: 10px; margin-bottom: 14px; border-bottom: 1px solid #dce6f5;">Customer Perception Narrative</div>
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #3a5278; padding-bottom: 10px; margin-bottom: 14px; border-bottom: 1px solid #dce6f5;">{{ (report.sections.get("customer_label", "customer") | capitalize) }} Perception Narrative</div>
         {% set perception_body = (sections.get("customer_perception_insights") or {}).get("body") or "" %}
         {% if perception_body %}
           {% set perception_sections = perception_body.split('\n\n') %}
@@ -1100,7 +1100,7 @@
       {% if friction %}
         {% if sections.get("is_free_preview") == true %}<div class="premium-section-wrapper"><div class="premium-blur-content">{% endif %}
         <div class="summary-card">
-          <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #3a5278; padding-bottom: 10px; margin-bottom: 14px; border-bottom: 1px solid #dce6f5;">{{ friction.get("title") or "Customer Friction Signals" }}</div>
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #3a5278; padding-bottom: 10px; margin-bottom: 14px; border-bottom: 1px solid #dce6f5;">{{ friction.get("title") or ((report.sections.get("customer_label", "customer") | capitalize) + " Friction Signals") }}</div>
 
           {% set friction_summary = friction.get("summary") or "" %}
           {% set friction_themes = friction.get("themes") or [] %}

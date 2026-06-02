@@ -3840,6 +3840,12 @@ def generate_business_report(
 
         summary_text = premium_headline
 
+        # Store customer_label in sections so the HTML template can use it
+        sections["customer_label"] = customer_label
+        sections["customer_label_singular"] = (
+            customer_label.rstrip("s") if customer_label.endswith("s") else customer_label
+        )
+
         # ── Customer label normalisation ────────────────────────────────────
         # Normalize all customer-term variants to the detected label.
         # Base text in insight_presentation_service uses a mix of "patients"
