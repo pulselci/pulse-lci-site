@@ -974,6 +974,188 @@ def admin_send_full_report(business_id: str, x_admin_key: str = Header(None)):
     return {"ok": True, "report_id": report_id, "emailed_to": contact_email}
 
 
+@router.get("/admin/clients", response_class=HTMLResponse)
+def admin_clients_dashboard(key: str = ""):
+    """
+    Clean client tracking dashboard.
+    Access: https://pulse-lci-api.onrender.com/admin/clients?key=YOUR_ADMIN_KEY
+    """
+    import re as _re
+
+    if key != settings.admin_api_key:
+        return HTMLResponse("<h2>Unauthorized</h2>", status_code=401)
+
+    # Fetch all businesses with their schedule + billing state
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    b.id,
+                    b.name,
+                    b.city,
+                    b.state,
+                    b.notes,
+                    b.created_at,
+                    rs.is_enabled,
+                    rs.next_run_at,
+                    rs.last_run_at,
+                    bb.billing_status,
+                    bb.stripe_customer_id,
+                    (
+                        SELECT MAX(gr.generated_at)
+                        FROM generated_reports gr
+                        WHERE gr.business_id = b.id
+                    ) AS last_report_at
+                FROM businesses b
+                LEFT JOIN report_schedules rs ON rs.business_id = b.id
+                LEFT JOIN business_billing bb ON bb.business_id = b.id
+                ORDER BY b.created_at DESC
+            """)
+            rows = cur.fetchall()
+
+    def extract_email(notes):
+        if not notes:
+            return ""
+        m = _re.search(r'<([^>]+@[^>]+)>', notes or "")
+        return m.group(1) if m else ""
+
+    def extract_name(notes):
+        if not notes:
+            return ""
+        m = _re.search(r'Contact:\s*([^<\n]+)', notes or "")
+        return m.group(1).strip() if m else ""
+
+    def fmt_dt(dt):
+        if not dt:
+            return "—"
+        try:
+            return dt.strftime("%b %d, %Y")
+        except Exception:
+            return str(dt)[:10]
+
+    prospects = []
+    subscribers = []
+
+    for row in rows:
+        is_enabled = row.get("is_enabled")
+        billing = row.get("billing_status") or ""
+        contact_email = extract_email(row.get("notes") or "")
+        contact_name = extract_name(row.get("notes") or "")
+
+        entry = {
+            "id": str(row.get("id") or ""),
+            "name": row.get("name") or "—",
+            "city": row.get("city") or "—",
+            "state": row.get("state") or "—",
+            "contact_name": contact_name,
+            "contact_email": contact_email,
+            "created_at": fmt_dt(row.get("created_at")),
+            "last_report_at": fmt_dt(row.get("last_report_at")),
+            "next_run_at": fmt_dt(row.get("next_run_at")),
+            "billing_status": billing,
+        }
+
+        if is_enabled:
+            subscribers.append(entry)
+        else:
+            prospects.append(entry)
+
+    def table_rows(entries, show_billing=False):
+        if not entries:
+            return '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:20px;">No records yet</td></tr>'
+        html = ""
+        for e in entries:
+            billing_badge = ""
+            if show_billing:
+                color = "#16a34a" if e["billing_status"] in ("active", "trialing") else "#dc2626"
+                billing_badge = f'<span style="background:{color};color:white;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;">{e["billing_status"] or "unknown"}</span>'
+            html += f"""<tr>
+                <td>{e["name"]}</td>
+                <td>{e["city"]}, {e["state"]}</td>
+                <td>{e["contact_name"]}</td>
+                <td><a href="mailto:{e["contact_email"]}" style="color:#2563eb;">{e["contact_email"]}</a></td>
+                <td>{e["created_at"]}</td>
+                <td>{e["last_report_at"]}</td>
+                {"<td>" + billing_badge + "</td>" if show_billing else ""}
+                <td>{e["next_run_at"] if show_billing else "—"}</td>
+            </tr>"""
+        return html
+
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Pulse LCI — Client Dashboard</title>
+<style>
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f1f5f9; color: #1e293b; }}
+  .header {{ background: #10233f; color: white; padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; }}
+  .header h1 {{ font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }}
+  .header span {{ font-size: 13px; opacity: 0.6; }}
+  .body {{ padding: 28px 32px; max-width: 1200px; margin: 0 auto; }}
+  .section {{ background: white; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 28px; overflow: hidden; }}
+  .section-header {{ padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 10px; }}
+  .section-header h2 {{ font-size: 14px; font-weight: 700; color: #10233f; }}
+  .badge {{ padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 700; }}
+  .badge-prospect {{ background: #fef9c3; color: #854d0e; }}
+  .badge-sub {{ background: #dcfce7; color: #166534; }}
+  table {{ width: 100%; border-collapse: collapse; font-size: 13px; }}
+  th {{ padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }}
+  td {{ padding: 12px 16px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }}
+  tr:last-child td {{ border-bottom: none; }}
+  tr:hover td {{ background: #f8fafc; }}
+  .stats {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }}
+  .stat {{ background: white; border-radius: 10px; padding: 18px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }}
+  .stat-val {{ font-size: 28px; font-weight: 900; color: #10233f; }}
+  .stat-label {{ font-size: 12px; color: #64748b; margin-top: 4px; }}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Pulse LCI — Client Dashboard</h1>
+  <span>Generated {fmt_dt(__import__('datetime').datetime.utcnow())}</span>
+</div>
+<div class="body">
+  <div class="stats">
+    <div class="stat"><div class="stat-val">{len(subscribers)}</div><div class="stat-label">Active Subscribers</div></div>
+    <div class="stat"><div class="stat-val">{len(prospects)}</div><div class="stat-label">Free Report Prospects</div></div>
+    <div class="stat"><div class="stat-val">{len(subscribers) + len(prospects)}</div><div class="stat-label">Total in System</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <h2>Active Subscribers</h2>
+      <span class="badge badge-sub">{len(subscribers)} paying</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Business</th><th>Location</th><th>Contact</th><th>Email</th>
+        <th>Signed Up</th><th>Last Report</th><th>Billing</th><th>Next Report</th>
+      </tr></thead>
+      <tbody>{table_rows(subscribers, show_billing=True)}</tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <h2>Free Report Prospects</h2>
+      <span class="badge badge-prospect">{len(prospects)} prospects</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Business</th><th>Location</th><th>Contact</th><th>Email</th>
+        <th>Requested</th><th>Report Sent</th><th colspan="2"></th>
+      </tr></thead>
+      <tbody>{table_rows(prospects, show_billing=False)}</tbody>
+    </table>
+  </div>
+</div>
+</body>
+</html>"""
+
+    return HTMLResponse(html)
+
+
 @router.get("/admin/billing/success", response_class=HTMLResponse)
 def billing_success(session_id: str | None = None):
     sync_result = None
