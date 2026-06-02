@@ -3147,6 +3147,29 @@ def _append_insight_to_report_in_db(
 # --------------------
 
 
+def _detect_customer_label(business_name: str) -> str:
+    """Auto-detect the right customer term from business name keywords."""
+    name = business_name.lower()
+    patient_keywords = [
+        "dental", "dentist", "dentistry", "orthodont", "oral", "smile", "teeth",
+        "medical", "clinic", "health", "chiropractic", "optometry", "vision",
+        "eye care", "pediatric", "therapy", "physical therapy", "urgent care",
+        "hospital", "physician", "doctor", "dermatology", "cardiology",
+    ]
+    client_keywords = [
+        "attorney", "law firm", "lawyer", "legal", "accountant", "accounting",
+        "cpa", "financial", "advisor", "consultant", "salon", "spa", "beauty",
+        "counseling", "coaching",
+    ]
+    for kw in patient_keywords:
+        if kw in name:
+            return "patients"
+    for kw in client_keywords:
+        if kw in name:
+            return "clients"
+    return "customers"
+
+
 @router.post("/business/{business_id}/reports/generate", response_model=GeneratedReportOut)
 def generate_business_report(
     business_id: UUID,
@@ -3474,7 +3497,7 @@ def generate_business_report(
 
             b = (business_obj or {}).get("business") or {}
             business_name = b.get("name")
-            customer_label = b.get("customer_label") or "customers"
+            customer_label = b.get("customer_label") or _detect_customer_label(business_name or "")
 
             competitors_meta = (business_obj or {}).get("competitors") or []
             for comp in competitors_meta:
