@@ -33,6 +33,36 @@ from app.services.snapshot_service import collect_snapshots_for_business
 logger = logging.getLogger(__name__)
 
 
+def _find_existing_business(business_name: str, city: str, state: str) -> Optional[UUID]:
+    """
+    Look for an existing business record with the same name + city + state.
+    Returns the UUID if found, None otherwise.
+    This prevents duplicate records when a free-report prospect subscribes.
+    """
+    from app.core.db import get_conn
+    try:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT id FROM businesses
+                    WHERE lower(trim(name)) = lower(trim(%s))
+                      AND lower(trim(city)) = lower(trim(%s))
+                      AND lower(trim(state)) = lower(trim(%s))
+                    ORDER BY created_at ASC
+                    LIMIT 1
+                    """,
+                    (business_name, city, state),
+                )
+                row = cur.fetchone()
+                if row:
+                    return UUID(str(row["id"]))
+    except Exception as exc:
+        logger.warning("_find_existing_business error: %s", exc)
+    return None
+
+
+
 @dataclass
 class OnboardingResult:
     ok: bool
@@ -107,25 +137,42 @@ def onboard_prospect(
             )
 
         # ------------------------------------------------------------------
-        # 2. Create business + competitor records
+        # 2. Create business + competitor records (or reuse existing match)
         # ------------------------------------------------------------------
         notes = (
             f"Free report prospect. Contact: {contact_name} "
             f"<{contact_email}> {contact_phone}".strip()
         )
 
-        intake = BusinessIntakeIn(
-            business_name=business_name,
-            city=city,
-            state=state,
-            country="US",
-            notes=notes,
-            competitors=competitors_in,
-        )
-
-        result = create_business_and_competitors(intake)
-        business_id: UUID = result.business.id
-        logger.info("Created business %s for prospect %r", business_id, business_name)
+        # Check for existing business with same name + city to avoid duplicates
+        existing_business_id = _find_existing_business(business_name, city, state)
+        if existing_business_id:
+            business_id = existing_business_id
+            logger.info("Reusing existing business %s for %r", business_id, business_name)
+            # Update notes to record new contact
+            try:
+                from app.core.db import get_conn
+                with get_conn() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            "UPDATE businesses SET notes = %s WHERE id = %s",
+                            (notes, str(business_id)),
+                        )
+                    conn.commit()
+            except Exception as exc:
+                logger.warning("Could not update notes for existing business: %s", exc)
+        else:
+            intake = BusinessIntakeIn(
+                business_name=business_name,
+                city=city,
+                state=state,
+                country="US",
+                notes=notes,
+                competitors=competitors_in,
+            )
+            result = create_business_and_competitors(intake)
+            business_id: UUID = result.business.id
+            logger.info("Created business %s for prospect %r", business_id, business_name)
 
         # ------------------------------------------------------------------
         # 3. Collect initial snapshots (current rating + review count)

@@ -951,7 +951,21 @@
               {% set headline_text = "Your Biggest Growth Lever This Month" %}
             {% endif %}
             {% set detail = item.get("detail") or "" %}
-            {% set why_text = item.get("why_it_matters") or item.get("implication") or "This is a key growth lever identified from your current competitive position." %}
+            {% set _why_raw = item.get("why_it_matters") or item.get("implication") or "" %}
+            {% set _at2 = summary_text | lower %}
+            {% if _why_raw %}
+              {% set why_text = _why_raw %}
+            {% elif "review" in _at2 and "lead" in _at2 %}
+              {% set why_text = "Review volume is the single most visible trust signal for new patients comparing you against competitors." %}
+            {% elif "review" in _at2 and ("gap" in _at2 or "behind" in _at2) %}
+              {% set why_text = "Closing the review gap is the fastest way to shift market share in your favor — customers use review count as a proxy for popularity." %}
+            {% elif "positioning" in _at2 or "advantage" in _at2 or "words" in _at2 %}
+              {% set why_text = "How you're described in reviews shapes how new customers perceive you before they ever contact you." %}
+            {% elif "credibility" in _at2 or "trust" in _at2 or "presented" in _at2 %}
+              {% set why_text = "Customers compare you side by side before making a decision — your trust signals need to be immediately visible." %}
+            {% else %}
+              {% set why_text = "Acting on this now compounding advantage over competitors who aren't paying attention to these signals." %}
+            {% endif %}
             {% set action_text = item.get("recommended_action") or summary_text %}
             {% set how_text = item.get("how_to_implement") or detail %}
             {% set priority = item.get("priority") or "Immediate" %}
@@ -1022,6 +1036,10 @@
                   <div class="detail-col">
                     <div class="detail-label">Action</div>
                     <p class="detail-text">{{ action_text }}</p>
+                  </div>
+                  <div class="detail-col">
+                    <div class="detail-label">How to implement</div>
+                    <p class="detail-text">{{ how_text or "Apply this to your Google Business profile, website, and review coaching strategy." }}</p>
                   </div>
                 </div>
               </div>
