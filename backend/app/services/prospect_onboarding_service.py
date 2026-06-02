@@ -106,6 +106,13 @@ def onboard_prospect(
 
         competitors_in: list[CompetitorIn] = []
 
+        # Track resolved names/addresses for email verification
+        resolved_business_label = (
+            f"{business_place.name} — {business_place.formatted_address}"
+            if business_place else business_name
+        )
+        resolved_competitor_labels: list[str] = []
+
         # The client's own business as a competitor (is_business=True)
         competitors_in.append(
             CompetitorIn(
@@ -127,6 +134,10 @@ def onboard_prospect(
                     "Could not resolve Place ID for competitor %r — adding without it",
                     comp_name,
                 )
+            resolved_competitor_labels.append(
+                f"{comp_place.name} — {comp_place.formatted_address}"
+                if comp_place else f"{comp_name} (could not verify)"
+            )
             competitors_in.append(
                 CompetitorIn(
                     name=comp_name,
@@ -250,6 +261,16 @@ def onboard_prospect(
             if report_id and contact_email:
                 try:
                     from app.api.generated_reports import send_generated_report_email, SendReportRequest
+                    comp_lines = "\n".join(
+                        f"  • {label}" for label in resolved_competitor_labels
+                    ) or "  (none provided)"
+                    verification_block = (
+                        "Before you dig in, here's what we tracked down based on what you entered:\n\n"
+                        f"  Your business: {resolved_business_label}\n"
+                        f"  Competitors:\n{comp_lines}\n\n"
+                        "If anything looks off — wrong location, wrong business, or a missing competitor — "
+                        "just reply to this email and we'll fix it.\n\n"
+                    )
                     send_generated_report_email(
                         UUID(report_id),
                         SendReportRequest(
@@ -260,6 +281,7 @@ def onboard_prospect(
                                 "Attached is your free local competitor intelligence report. "
                                 "It covers your current competitive position, review standings, "
                                 "and the key opportunities we spotted in your market.\n\n"
+                                + verification_block +
                                 "This is your baseline report. Each month you'll receive an updated "
                                 "report showing exactly how your market is shifting.\n\n"
                                 "Reply to this email if you have any questions.\n\n"
