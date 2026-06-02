@@ -3841,22 +3841,28 @@ def generate_business_report(
         summary_text = premium_headline
 
         # ── Customer label normalisation ────────────────────────────────────
-        # Replace every occurrence of "patients" (and "patient") with the
-        # business-specific customer label so the report reads naturally for
-        # non-healthcare businesses (e.g. "customers" for auto repair).
-        if customer_label and customer_label.lower() not in ("patients", "patient"):
+        # Normalize all customer-term variants to the detected label.
+        # Base text in insight_presentation_service uses a mix of "patients"
+        # and "customers" — we replace both to the correct term for this business.
+        if customer_label:
             import json as _json2
 
             def _replace_patient_terms(text: str, label: str) -> str:
                 if not text:
                     return text
-                label_pl = label          # plural  (e.g. "customers")
+                label_pl = label          # plural  (e.g. "patients", "customers", "clients")
                 label_sg = label.rstrip("s") if label.endswith("s") else label  # singular
-                # Replace plural first (order matters)
+                # Always normalize both "patients" and "customers" to the target label,
+                # since base text in the codebase uses both terms inconsistently.
+                # Replace plural forms first (order matters to avoid partial matches)
                 text = text.replace("patients", label_pl)
                 text = text.replace("Patients", label_pl.capitalize())
                 text = text.replace("patient", label_sg)
                 text = text.replace("Patient", label_sg.capitalize())
+                text = text.replace("customers", label_pl)
+                text = text.replace("Customers", label_pl.capitalize())
+                text = text.replace("customer", label_sg)
+                text = text.replace("Customer", label_sg.capitalize())
                 return text
 
             def _walk_and_replace(obj, label):
