@@ -985,8 +985,7 @@ def admin_clients_dashboard(key: str = ""):
     if key != settings.admin_api_key:
         return HTMLResponse("<h2>Unauthorized</h2>", status_code=401)
 
-    # Fetch all businesses with their schedule + billing state
-    # (billing fields live directly on the businesses table)
+    # Fetch all businesses with their schedule state
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("""
@@ -997,18 +996,21 @@ def admin_clients_dashboard(key: str = ""):
                     b.state,
                     b.notes,
                     b.created_at,
-                    b.billing_status,
-                    b.stripe_customer_id,
                     rs.is_enabled,
                     rs.next_run_at,
                     rs.last_run_at,
                     (
                         SELECT MAX(gr.generated_at)
-                        FROM generated_reports gr
+                        FROM public.generated_reports gr
                         WHERE gr.business_id = b.id
-                    ) AS last_report_at
-                FROM businesses b
-                LEFT JOIN report_schedules rs ON rs.business_id = b.id
+                    ) AS last_report_at,
+                    (
+                        SELECT COUNT(*)
+                        FROM public.generated_reports gr
+                        WHERE gr.business_id = b.id
+                    ) AS report_count
+                FROM public.businesses b
+                LEFT JOIN public.report_schedules rs ON rs.business_id = b.id
                 ORDER BY b.created_at DESC
             """)
             rows = cur.fetchall()
@@ -1038,7 +1040,6 @@ def admin_clients_dashboard(key: str = ""):
 
     for row in rows:
         is_enabled = row.get("is_enabled")
-        billing = row.get("billing_status") or ""
         contact_email = extract_email(row.get("notes") or "")
         contact_name = extract_name(row.get("notes") or "")
 
@@ -1052,7 +1053,7 @@ def admin_clients_dashboard(key: str = ""):
             "created_at": fmt_dt(row.get("created_at")),
             "last_report_at": fmt_dt(row.get("last_report_at")),
             "next_run_at": fmt_dt(row.get("next_run_at")),
-            "billing_status": billing,
+            "report_count": int(row.get("report_count") or 0),
         }
 
         if is_enabled:
@@ -1060,25 +1061,24 @@ def admin_clients_dashboard(key: str = ""):
         else:
             prospects.append(entry)
 
-    def table_rows(entries, show_billing=False):
+    def table_rows(entries, show_next=False):
         if not entries:
-            return '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:20px;">No records yet</td></tr>'
+            return '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:20px;">No records yet</td></tr>'
         html = ""
         for e in entries:
-            billing_badge = ""
-            if show_billing:
-                color = "#16a34a" if e["billing_status"] in ("active", "trialing") else "#dc2626"
-                billing_badge = f'<span style="background:{color};color:white;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;">{e["billing_status"] or "unknown"}</span>'
-            html += f"""<tr>
-                <td>{e["name"]}</td>
-                <td>{e["city"]}, {e["state"]}</td>
-                <td>{e["contact_name"]}</td>
-                <td><a href="mailto:{e["contact_email"]}" style="color:#2563eb;">{e["contact_email"]}</a></td>
-                <td>{e["created_at"]}</td>
-                <td>{e["last_report_at"]}</td>
-                {"<td>" + billing_badge + "</td>" if show_billing else ""}
-                <td>{e["next_run_at"] if show_billing else "—"}</td>
-            </tr>"""
+            next_col = f'<td>{e["next_run_at"]}</td>' if show_next else '<td>—</td>'
+            html += (
+                "<tr>"
+                f'<td>{e["name"]}</td>'
+                f'<td>{e["city"]}, {e["state"]}</td>'
+                f'<td>{e["contact_name"]}</td>'
+                f'<td><a href="mailto:{e["contact_email"]}" style="color:#2563eb;">{e["contact_email"]}</a></td>'
+                f'<td>{e["created_at"]}</td>'
+                f'<td>{e["last_report_at"]}</td>'
+                f'<td>{e["report_count"]} sent</td>'
+                + next_col +
+                "</tr>"
+            )
         return html
 
     html = f"""<!DOCTYPE html>
@@ -1130,9 +1130,9 @@ def admin_clients_dashboard(key: str = ""):
     <table>
       <thead><tr>
         <th>Business</th><th>Location</th><th>Contact</th><th>Email</th>
-        <th>Signed Up</th><th>Last Report</th><th>Billing</th><th>Next Report</th>
+        <th>Signed Up</th><th>Last Report</th><th>Reports Sent</th><th>Next Report</th>
       </tr></thead>
-      <tbody>{table_rows(subscribers, show_billing=True)}</tbody>
+      <tbody>{table_rows(subscribers, show_next=True)}</tbody>
     </table>
   </div>
 
@@ -1144,9 +1144,9 @@ def admin_clients_dashboard(key: str = ""):
     <table>
       <thead><tr>
         <th>Business</th><th>Location</th><th>Contact</th><th>Email</th>
-        <th>Requested</th><th>Report Sent</th><th colspan="2"></th>
+        <th>Requested</th><th>Last Report</th><th>Reports Sent</th><th></th>
       </tr></thead>
-      <tbody>{table_rows(prospects, show_billing=False)}</tbody>
+      <tbody>{table_rows(prospects, show_next=False)}</tbody>
     </table>
   </div>
 </div>
