@@ -372,6 +372,15 @@ def create_checkout_session(payload: CreateCheckoutSessionIn):
     stripe_customer_id = business.get("stripe_customer_id")
 
     try:
+        # Calculate trial end = 1st of next month at midnight UTC
+        # Subscriber gets their baseline report now, first charge hits on the 1st
+        _now = datetime.now(timezone.utc)
+        if _now.month == 12:
+            _trial_end = datetime(_now.year + 1, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        else:
+            _trial_end = datetime(_now.year, _now.month + 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+        _trial_end_ts = int(_trial_end.timestamp())
+
         session_kwargs = {
             "mode": "subscription",
             "success_url": settings.stripe_success_url,
@@ -389,10 +398,11 @@ def create_checkout_session(payload: CreateCheckoutSessionIn):
                 "plan": plan,
             },
             "subscription_data": {
+                "trial_end": _trial_end_ts,
                 "metadata": {
                     "business_id": business_id,
                     "plan": plan,
-                }
+                },
             },
         }
 
