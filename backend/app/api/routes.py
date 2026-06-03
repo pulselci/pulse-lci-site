@@ -469,7 +469,15 @@ def billing_portal(business_id: UUID):
                 pass
 
     if not stripe_customer_id:
-        raise HTTPException(status_code=400, detail="No Stripe customer on file for this business")
+        from fastapi.responses import HTMLResponse as _HTMLResponse
+        return _HTMLResponse("""
+        <html><body style="font-family:Arial,sans-serif;max-width:500px;margin:60px auto;text-align:center;color:#172033;">
+        <h2>Manage Your Subscription</h2>
+        <p>To cancel or modify your subscription, please email us at
+        <a href="mailto:support@pulselci.com">support@pulselci.com</a>
+        and we'll take care of it within one business day.</p>
+        </body></html>
+        """, status_code=200)
 
     try:
         stripe.api_key = settings.stripe_secret_key
