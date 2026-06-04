@@ -290,42 +290,12 @@ def send_plain_email(
         return EmailSendResult(ok=False, error="Missing SMTP_USER or SMTP_PASS")
 
     try:
-        # Convert plain text body to minimal HTML — prose stays unstyled,
-        # only the signature gets light formatting. Keeps deliverability high.
-        paragraphs = body.strip().split("\n\n")
-        html_paragraphs = ""
-        in_sig = False
-        for i, para in enumerate(paragraphs):
-            lines = para.strip().split("\n")
-            # Detect signature block (starts with the sender's name)
-            if any(ln.strip().startswith("Craig White") for ln in lines):
-                in_sig = True
-            if in_sig:
-                sig_lines = "<br>".join(ln for ln in lines)
-                html_paragraphs += (
-                    f'<p style="margin:24px 0 0 0; padding-top:16px; '
-                    f'border-top:1px solid #e8eef7; font-size:13px; '
-                    f'color:#30415f; line-height:1.6;">{sig_lines}</p>'
-                )
-            else:
-                text = "<br>".join(ln for ln in lines)
-                html_paragraphs += f'<p style="margin:0 0 14px 0; font-size:14px; line-height:1.7; color:#172033;">{text}</p>'
-
-        html_body = f"""<html>
-<body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;">
-<div style="max-width:560px;margin:0 auto;padding:32px 24px;">
-{html_paragraphs}
-</div>
-</body>
-</html>"""
-
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
         msg["From"] = display_from
         msg["Reply-To"] = display_from
         msg["To"] = to_email
-        msg.attach(MIMEText(body, "plain"))        # plain text fallback
-        msg.attach(MIMEText(html_body, "html"))    # HTML shown by default
+        msg.attach(MIMEText(body, "plain"))
 
         with smtplib.SMTP(host, port) as server:
             if use_tls:
