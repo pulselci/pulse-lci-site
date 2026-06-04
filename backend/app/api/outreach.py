@@ -7,16 +7,45 @@ cold outreach emails to discovered prospects.
 from __future__ import annotations
 
 import os
-from typing import Optional
+import sys
+import threading
+from pathlib import Path
+from typing import Optional, List
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 
 from app.core.db import get_conn
 from app.services.email_service import send_plain_email
 
 router = APIRouter(prefix="/outreach", tags=["outreach"])
+
+# Track discovery job status in memory
+_discovery_status: dict = {"running": False, "last": None, "log": []}
+
+
+def _run_discovery(city: str, state: str, categories: List[str]) -> None:
+    """Run prospect discovery in a background thread."""
+    global _discovery_status
+    _discovery_status["running"] = True
+    _discovery_status["log"] = [f"Starting discovery: {city}, {state} — {', '.join(categories)}"]
+
+    try:
+        # Ensure outreach module is importable
+        backend_dir = Path(__file__).resolve().parent.parent.parent
+        if str(backend_dir) not in sys.path:
+            sys.path.insert(0, str(backend_dir))
+
+        from outreach.discover import discover
+        discover(city=city, state=state, categories=categories)
+        _discovery_status["last"] = f"Done — {city}, {state}: {', '.join(categories)}"
+        _discovery_status["log"].append("Discovery completed successfully.")
+    except Exception as e:
+        _discovery_status["last"] = f"Error: {e}"
+        _discovery_status["log"].append(f"Error: {e}")
+    finally:
+        _discovery_status["running"] = False
 
 
 # ---------------------------------------------------------------------------
@@ -50,6 +79,12 @@ class DraftUpdateIn(BaseModel):
     notes: Optional[str] = None
 
 
+class DiscoverIn(BaseModel):
+    city: str
+    state: str
+    categories: str  # comma-separated
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -76,6 +111,30 @@ def _get_prospect(prospect_id: str) -> dict:
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
+
+@router.post("/discover")
+def start_discovery(body: DiscoverIn, background_tasks: BackgroundTasks) -> dict:
+    """Trigger prospect discovery in the background."""
+    if _discovery_status["running"]:
+        raise HTTPException(status_code=409, detail="A discovery run is already in progress. Check /outreach/discover/status.")
+
+    categories = [c.strip() for c in body.categories.split(",") if c.strip()]
+    if not categories:
+        raise HTTPException(status_code=400, detail="At least one category is required.")
+
+    background_tasks.add_task(_run_discovery, city=body.city, state=body.state, categories=categories)
+    return {"ok": True, "message": f"Discovery started for {body.city}, {body.state}. Check the queue in a few minutes."}
+
+
+@router.get("/discover/status")
+def discovery_status() -> dict:
+    """Check whether a discovery run is in progress."""
+    return {
+        "running": _discovery_status["running"],
+        "last": _discovery_status["last"],
+        "log": _discovery_status["log"][-10:],
+    }
+
 
 @router.get("/queue")
 def list_queue(status: str = "draft_ready", limit: int = 50) -> list[dict]:

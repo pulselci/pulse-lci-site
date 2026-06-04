@@ -80,6 +80,26 @@
   <div class="stat"><strong id="stat-no-email">—</strong> no email found</div>
 </div>
 
+<div style="background:#fff; border-bottom: 1px solid #dce6f5; padding: 16px 28px;">
+  <div style="font-size: 13px; font-weight: 700; color: #122033; margin-bottom: 10px;">Find New Prospects</div>
+  <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+    <div>
+      <label style="font-size: 11px; color: #62738f; display:block; margin-bottom:3px;">City</label>
+      <input id="disc-city" type="text" placeholder="Dallas" style="font-size:13px; padding:7px 10px; border:1px solid #c8d8ee; border-radius:8px; width:140px;">
+    </div>
+    <div>
+      <label style="font-size: 11px; color: #62738f; display:block; margin-bottom:3px;">State</label>
+      <input id="disc-state" type="text" placeholder="TX" maxlength="2" style="font-size:13px; padding:7px 10px; border:1px solid #c8d8ee; border-radius:8px; width:60px; text-transform:uppercase;">
+    </div>
+    <div style="flex:1; min-width:200px;">
+      <label style="font-size: 11px; color: #62738f; display:block; margin-bottom:3px;">Categories (comma-separated)</label>
+      <input id="disc-categories" type="text" placeholder="auto repair shop, dental office, medical spa" style="font-size:13px; padding:7px 10px; border:1px solid #c8d8ee; border-radius:8px; width:100%;">
+    </div>
+    <button class="btn-approve" id="disc-btn" onclick="startDiscovery()" style="padding:8px 20px; white-space:nowrap;">🔍 Find Prospects</button>
+    <span id="disc-status" style="font-size:12px; color:#62738f;"></span>
+  </div>
+</div>
+
 <div class="filter-bar">
   <label for="status-filter">Show:</label>
   <select id="status-filter" onchange="loadQueue()">
@@ -276,6 +296,59 @@ async function approve(id) {
 
 function escHtml(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function startDiscovery() {
+  const city = document.getElementById('disc-city').value.trim();
+  const state = document.getElementById('disc-state').value.trim().toUpperCase();
+  const categories = document.getElementById('disc-categories').value.trim();
+  const btn = document.getElementById('disc-btn');
+  const status = document.getElementById('disc-status');
+
+  if (!city || !state || !categories) {
+    status.textContent = 'Fill in city, state, and at least one category.';
+    status.style.color = '#c62828';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Running...';
+  status.style.color = '#62738f';
+  status.textContent = 'Discovery started — this takes a few minutes. Queue will update automatically.';
+
+  try {
+    const r = await fetch(`${API}/outreach/discover`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ city, state, categories }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || r.statusText);
+    status.textContent = data.message;
+    status.style.color = '#2e7d32';
+
+    // Poll for completion
+    const poll = setInterval(async () => {
+      try {
+        const sr = await fetch(`${API}/outreach/discover/status`);
+        const sd = await sr.json();
+        if (!sd.running) {
+          clearInterval(poll);
+          btn.disabled = false;
+          btn.textContent = '🔍 Find Prospects';
+          status.textContent = sd.last || 'Done.';
+          loadQueue();
+          loadStats();
+        }
+      } catch(_) { clearInterval(poll); }
+    }, 5000);
+
+  } catch(e) {
+    status.textContent = `Failed: ${e.message}`;
+    status.style.color = '#c62828';
+    btn.disabled = false;
+    btn.textContent = '🔍 Find Prospects';
+  }
 }
 
 // Init
