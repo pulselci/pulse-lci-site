@@ -671,18 +671,21 @@
 
           <div class="summary-side">
             <div class="summary-side-box">
+              {% set _you_row = sov_rows|selectattr("is_business")|list|first %}
+              {% set _your_rating = _you_row.get("google_rating") if _you_row else none %}
+              {% set _comp_count = sov_rows|rejectattr("is_business")|list|length %}
+
               <div class="summary-side-item">
-                <div class="meta-label">Action items</div>
-                <div class="meta-value">{{ immediate_items|length + next_items|length }}</div>
+                <div class="meta-label">Your Rating</div>
+                <div class="meta-value">{% if _your_rating %}★ {{ "%.1f"|format(_your_rating|float) }}{% else %}—{% endif %}</div>
               </div>
               <div class="summary-side-item">
-                <div class="meta-label">Market rank</div>
-                {% set _rt = report.sections.report_experience.review_target or {} %}
-                <div class="meta-value">#{{ _rt.get("current_rank") or "—" }}</div>
+                <div class="meta-label">Competitors Tracked</div>
+                <div class="meta-value">{{ _comp_count }}</div>
               </div>
               <div class="summary-side-item">
-                <div class="meta-label">Watching</div>
-                <div class="meta-value">{{ monitor_items|length }} Competitor{% if monitor_items|length != 1 %}s{% endif %}</div>
+                <div class="meta-label">Next Report</div>
+                <div class="meta-value">~30 days</div>
               </div>
             </div>
           </div>
