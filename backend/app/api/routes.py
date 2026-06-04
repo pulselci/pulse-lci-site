@@ -852,6 +852,45 @@ async def stripe_webhook(request: Request):
                 if business_id:
                     _disable_report_schedule(str(business_id))
 
+                # Send branded payment failed email to the customer
+                if business_id:
+                    try:
+                        import re as _re
+                        with get_conn() as conn:
+                            with conn.cursor() as cur:
+                                cur.execute(
+                                    "SELECT name, notes FROM businesses WHERE id = %s",
+                                    (str(business_id),),
+                                )
+                                biz = cur.fetchone()
+
+                        if biz:
+                            biz_name = biz.get("name") or "your business"
+                            notes = biz.get("notes") or ""
+                            m_email = _re.search(r'<([^>]+@[^>]+)>', notes)
+                            m_name = _re.search(r'Contact:\s*([^<\n]+)', notes)
+                            contact_email = m_email.group(1) if m_email else None
+                            contact_first = m_name.group(1).strip().split()[0] if m_name else "there"
+
+                            if contact_email:
+                                from app.services.email_service import send_plain_email
+                                send_plain_email(
+                                    to_email=contact_email,
+                                    subject=f"Action needed — payment failed for {biz_name}",
+                                    body=(
+                                        f"Hi {contact_first},\n\n"
+                                        f"We weren't able to process your payment for your Pulse LCI subscription for {biz_name}.\n\n"
+                                        "Your monthly reports have been paused until payment is resolved.\n\n"
+                                        "To update your payment method and reactivate your subscription, "
+                                        f"visit: https://pulse-lci-api.onrender.com/billing/portal/{business_id}\n\n"
+                                        "If you have any questions, reply to this email or reach us at reports@pulselci.com.\n\n"
+                                        "— Pulse LCI"
+                                    ),
+                                )
+                                logger.info("Payment failed email sent to %s for business %s", contact_email, business_id)
+                    except Exception as exc:
+                        logger.warning("Could not send payment failed email for %s: %s", business_id, exc)
+
 
     except Exception as e:
         logger.exception("Stripe webhook handler failed")
