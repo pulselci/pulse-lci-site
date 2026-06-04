@@ -1132,6 +1132,7 @@ def admin_clients_dashboard(key: str = ""):
                     b.state,
                     b.notes,
                     b.created_at,
+                    b.stripe_price_id,
                     rs.is_enabled,
                     rs.next_run_at,
                     rs.last_run_at,
@@ -1144,7 +1145,14 @@ def admin_clients_dashboard(key: str = ""):
                         SELECT COUNT(*)
                         FROM public.generated_reports gr
                         WHERE gr.business_id = b.id
-                    ) AS report_count
+                    ) AS report_count,
+                    (
+                        SELECT gr.id
+                        FROM public.generated_reports gr
+                        WHERE gr.business_id = b.id
+                        ORDER BY gr.generated_at DESC
+                        LIMIT 1
+                    ) AS last_report_id
                 FROM public.businesses b
                 LEFT JOIN public.report_schedules rs ON rs.business_id = b.id
                 ORDER BY b.created_at DESC
@@ -1179,6 +1187,17 @@ def admin_clients_dashboard(key: str = ""):
         contact_email = extract_email(row.get("notes") or "")
         contact_name = extract_name(row.get("notes") or "")
 
+        # Map stripe_price_id to plan name
+        price_id = row.get("stripe_price_id") or ""
+        if price_id == (settings.stripe_price_growth or "__none__"):
+            plan_name = "Growth"
+        elif price_id == (settings.stripe_price_starter or "____"):
+            plan_name = "Starter"
+        elif price_id:
+            plan_name = "Paid"
+        else:
+            plan_name = "—"
+
         entry = {
             "id": str(row.get("id") or ""),
             "name": row.get("name") or "—",
@@ -1190,6 +1209,8 @@ def admin_clients_dashboard(key: str = ""):
             "last_report_at": fmt_dt(row.get("last_report_at")),
             "next_run_at": fmt_dt(row.get("next_run_at")),
             "report_count": int(row.get("report_count") or 0),
+            "plan": plan_name,
+            "last_report_id": str(row.get("last_report_id") or ""),
         }
 
         if is_enabled:
@@ -1199,19 +1220,30 @@ def admin_clients_dashboard(key: str = ""):
 
     def table_rows(entries, show_next=False):
         if not entries:
-            return '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:20px;">No records yet</td></tr>'
+            return '<tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:20px;">No records yet</td></tr>'
         html = ""
         for e in entries:
             next_col = f'<td>{e["next_run_at"]}</td>' if show_next else '<td>—</td>'
+            plan = e.get("plan", "—")
+            plan_color = "#166534" if plan == "Growth" else "#1e40af" if plan == "Starter" else "#64748b"
+            plan_badge = f'<span style="background:#f0f9ff;color:{plan_color};font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;">{plan}</span>'
+            report_id = e.get("last_report_id", "")
+            report_link = (
+                f'<a href="/generated-reports/{report_id}/pdf" target="_blank" '
+                f'style="color:#2563eb;font-size:12px;">View PDF</a>'
+                if report_id else "—"
+            )
             html += (
                 "<tr>"
                 f'<td>{e["name"]}</td>'
                 f'<td>{e["city"]}, {e["state"]}</td>'
                 f'<td>{e["contact_name"]}</td>'
                 f'<td><a href="mailto:{e["contact_email"]}" style="color:#2563eb;">{e["contact_email"]}</a></td>'
+                f'<td>{plan_badge}</td>'
                 f'<td>{e["created_at"]}</td>'
                 f'<td>{e["last_report_at"]}</td>'
                 f'<td>{e["report_count"]} sent</td>'
+                f'<td>{report_link}</td>'
                 + next_col +
                 "</tr>"
             )
@@ -1265,8 +1297,8 @@ def admin_clients_dashboard(key: str = ""):
     </div>
     <table>
       <thead><tr>
-        <th>Business</th><th>Location</th><th>Contact</th><th>Email</th>
-        <th>Signed Up</th><th>Last Report</th><th>Reports Sent</th><th>Next Report</th>
+        <th>Business</th><th>Location</th><th>Contact</th><th>Email</th><th>Plan</th>
+        <th>Signed Up</th><th>Last Report</th><th>Reports Sent</th><th>Last Report</th><th>Next Report</th>
       </tr></thead>
       <tbody>{table_rows(subscribers, show_next=True)}</tbody>
     </table>
@@ -1279,8 +1311,8 @@ def admin_clients_dashboard(key: str = ""):
     </div>
     <table>
       <thead><tr>
-        <th>Business</th><th>Location</th><th>Contact</th><th>Email</th>
-        <th>Requested</th><th>Last Report</th><th>Reports Sent</th><th></th>
+        <th>Business</th><th>Location</th><th>Contact</th><th>Email</th><th>Plan</th>
+        <th>Requested</th><th>Last Report</th><th>Reports Sent</th><th>Last Report</th><th></th>
       </tr></thead>
       <tbody>{table_rows(prospects, show_next=False)}</tbody>
     </table>
