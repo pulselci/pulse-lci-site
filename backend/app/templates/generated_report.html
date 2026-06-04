@@ -672,16 +672,17 @@
           <div class="summary-side">
             <div class="summary-side-box">
               <div class="summary-side-item">
-                <div class="meta-label">Supporting signals</div>
-                <div class="meta-value">{{ immediate_items|length }}</div>
+                <div class="meta-label">Action items</div>
+                <div class="meta-value">{{ immediate_items|length + next_items|length }}</div>
               </div>
               <div class="summary-side-item">
-                <div class="meta-label">Position context</div>
-                <div class="meta-value">{{ _pc.count }}</div>
+                <div class="meta-label">Market rank</div>
+                {% set _rt = report.sections.report_experience.review_target or {} %}
+                <div class="meta-value">#{{ _rt.get("current_rank") or "—" }}</div>
               </div>
               <div class="summary-side-item">
-                <div class="meta-label">Monitor items</div>
-                <div class="meta-value">{{ monitor_items|length }}</div>
+                <div class="meta-label">Watching</div>
+                <div class="meta-value">{{ monitor_items|length }} competitor{% if monitor_items|length != 1 %}s{% endif %}</div>
               </div>
             </div>
           </div>
@@ -815,9 +816,14 @@
               {% if monitor_items %}
                 {% set top = monitor_items[0] %}
                 {% set top_summary = top.get("summary") or "" %}
-                {# Show just the competitor name if we can extract it, otherwise first 60 chars #}
+                {# Truncate at first period to show one clean sentence #}
+                {% if "." in top_summary %}
+                  {% set first_sentence = top_summary.split(".")[0] ~ "." %}
+                {% else %}
+                  {% set first_sentence = top_summary %}
+                {% endif %}
                 <div style="font-size: 12px; color: #30415f; line-height: 1.4;">
-                  {{ top_summary[:80] }}{% if top_summary|length > 80 %}…{% endif %}
+                  {{ first_sentence }}
                 </div>
               {% endif %}
             </div>
