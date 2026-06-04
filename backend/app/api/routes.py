@@ -2285,7 +2285,7 @@ def _build_data_driven_execution_plan(sections: dict) -> list[dict]:
                 detail = (
                     f"You lead {leader_name} with {owner_reviews:,} reviews. "
                     f"{challenger} is {gap_below:,} reviews behind. "
-                    f"Ask every patient for a review this month to maintain your margin."
+                    f"Ask every customer for a review this month to maintain your margin."
                 )
             else:
                 action = "Keep your review lead — it's your most visible competitive advantage."
@@ -2326,10 +2326,10 @@ def _build_data_driven_execution_plan(sections: dict) -> list[dict]:
     owner_rating_val = float(owner.get("google_rating") or 0) if owner else 0
 
     if praise_words:
-        action = f"Own the words patients already use: {praise_words}."
+        action = f"Own the words customers already use: {praise_words}."
         detail = (
             f"These are the phrases showing up in local reviews right now. "
-            f"Add them to your Google Business profile description and coach patients to use them when they leave a review."
+            f"Add them to your Google Business profile description and coach customers to use them when they leave a review."
         )
         if weakest_rated and owner_rating_val > float(weakest_rated.get("google_rating") or 0):
             weak_name = weakest_rated.get("competitor_name") or "a competitor"
@@ -2347,7 +2347,7 @@ def _build_data_driven_execution_plan(sections: dict) -> list[dict]:
             f"Highlight your rating on your homepage, in follow-up emails, and on your Google profile."
         )
     else:
-        action = "Highlight one clear advantage patients should associate with your practice."
+        action = "Highlight one clear advantage customers should associate with your business."
         detail = "Reinforce one strength — comfort, convenience, or communication — consistently across your website and Google profile."
 
     if action:
@@ -2374,9 +2374,9 @@ def _build_data_driven_execution_plan(sections: dict) -> list[dict]:
     if worst_comp and worst_theme:
         action = f"Turn {worst_comp}'s weakness into your headline."
         detail = (
-            f"Patients are complaining about {worst_theme.lower()} at {worst_comp} "
+            f"Customers are complaining about {worst_theme.lower()} at {worst_comp} "
             f"({worst_count} mentions in recent reviews). "
-            f"If that's a strength of yours, say so explicitly — on your website, in your Google profile, and when patients ask why they should choose you."
+            f"If that's a strength of yours, say so explicitly — on your website, in your Google profile, and when customers ask why they should choose you."
         )
     else:
         # Fallback: use the messaging gap from perception narrative if available
@@ -2392,7 +2392,7 @@ def _build_data_driven_execution_plan(sections: dict) -> list[dict]:
                 raw = perception_body.split("Weak Spot")[1].split("\n\n")[0].strip()
                 # Replace anonymous "Their" with the competitor name
                 if weak_spot_comp:
-                    raw = raw.replace("Their patients", f"{weak_spot_comp}'s patients")
+                    raw = raw.replace("Their customers", f"{weak_spot_comp}'s customers")
                     raw = raw.replace("their website", f"{weak_spot_comp}'s website")
                     raw = raw.replace("they're advertising", f"{weak_spot_comp} is advertising")
                 weak_spot_detail = raw
@@ -2401,7 +2401,7 @@ def _build_data_driven_execution_plan(sections: dict) -> list[dict]:
 
         if weak_spot_detail:
             comp_label = f" {weak_spot_comp}'s" if weak_spot_comp else " a competitor's"
-            action = f"Exploit{comp_label} gap between what patients value and what they advertise."
+            action = f"Exploit{comp_label} gap between what customers value and what they advertise."
             # Truncate cleanly at sentence boundary
             full = weak_spot_detail[:600]
             last_period = full.rfind(".")
@@ -2730,12 +2730,12 @@ def _build_report_experience_payload(
             if owner_rank == 1 and owner_reviews:
                 return (
                     f"You hold the #1 spot across {market_size} competitors with {owner_reviews:,} reviews. "
-                    "Your rank is a trust signal — patients comparing providers will see it immediately."
+                    "Your rank is a trust signal — customers comparing providers will see it immediately."
                 )
             elif owner_rank and owner_reviews and market_size:
                 return (
                     f"You're ranked #{owner_rank} of {market_size} with {owner_reviews:,} reviews. "
-                    "Review rank directly influences which business patients call first."
+                    "Review rank directly influences which business customers call first."
                 )
 
         if insight_type == "leader_gap":
@@ -2761,7 +2761,7 @@ def _build_report_experience_payload(
             elif leader_share:
                 return (
                     f"{leader_name} controls {leader_share}% of market reviews — "
-                    "that dominance builds default trust with patients before they ever compare."
+                    "that dominance builds default trust with customers before they ever compare."
                 )
 
         return ""
@@ -2778,7 +2778,7 @@ def _build_report_experience_payload(
             if owner_rank == 1 and owner_reviews:
                 return (
                     "Set a monthly target of at least 10 new reviews. "
-                    "Ask patients at checkout or in a follow-up message — consistency matters more than volume spikes."
+                    "Ask customers at checkout or in a follow-up message — consistency matters more than volume spikes."
                 )
             elif owner_rank and owner_reviews:
                 return (

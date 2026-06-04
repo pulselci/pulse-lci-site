@@ -1829,7 +1829,7 @@ def _build_action_layer(
                 return (
                     f"Turn professionalism into a sharper competitive contrast against {competitor_name}.",
                     f"Professionalism can elevate perceived quality even when {competitor_name} remains stronger on {competitor_phrase}.",
-                    "Showcase team expertise, process consistency, and polished patient experience through testimonial selection, staff bios, and service-page proof.",
+                    "Showcase team expertise, process consistency, and polished customer experience through testimonial selection, staff bios, and service-page proof.",
                 )
 
             return (
@@ -1842,14 +1842,14 @@ def _build_action_layer(
             if "speed" in owner_theme_set or "convenience" in owner_theme_set:
                 return (
                     f"Own the market position around {owner_phrase}.",
-                    "Speed and convenience drive patient choice when clearly communicated."
+                    "Speed and convenience drive customer choice when clearly communicated."
                     "Emphasize fast scheduling, short wait times, and ease of experience across homepage, booking flow, and front desk scripting.",
                 )
 
             if "trust" in owner_theme_set or "communication" in owner_theme_set:
                 return (
                     f"Build stronger positioning around {owner_phrase}.",
-                    "Trust and communication drive patient confidence and long-term retention.",
+                    "Trust and communication drive customer confidence and long-term retention.",
                     "Highlight testimonials, doctor credibility, and clear explanations in service pages and consultations.",
                 )
 
@@ -1857,7 +1857,7 @@ def _build_action_layer(
                 return (
                     f"Turn {owner_phrase} into a defining brand signal.",
                     "Professionalism reinforces perceived quality and reliability.",
-                    "Showcase staff expertise, process clarity, and consistent patient experience across all touchpoints.",
+                    "Showcase staff expertise, process clarity, and consistent customer experience across all touchpoints.",
                 )
 
             return (
