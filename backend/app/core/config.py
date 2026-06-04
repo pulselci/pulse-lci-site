@@ -12,8 +12,12 @@ class Settings(BaseSettings):
     # -------------------------
     # Email / SMTP
     # -------------------------
-    SMTP_USER: str | None = None
+    SMTP_USER: str | None = None  # reports@pulselci.com — used for subscriber report emails
     SMTP_PASS: str | None = None
+
+    # Outreach sender — craig@pulselci.com (separate Workspace account + app password)
+    OUTREACH_SMTP_USER: str | None = None
+    OUTREACH_SMTP_PASS: str | None = None
 
     # Google Places (Phase C4+)
     GOOGLE_PLACES_API_KEY: str | None = None

@@ -270,14 +270,17 @@ def send_plain_email(
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
 
-    user = settings.SMTP_USER
-    password = settings.SMTP_PASS
+    # Use craig@pulselci.com credentials if available, otherwise fall back to main SMTP
+    user = (settings.OUTREACH_SMTP_USER or settings.SMTP_USER or "").strip()
+    password = (settings.OUTREACH_SMTP_PASS or settings.SMTP_PASS or "").strip()
     host = os.getenv("SMTP_HOST", "smtp.gmail.com")
     port = int(os.getenv("SMTP_PORT", "587"))
     use_tls = os.getenv("SMTP_TLS", "true").strip().lower() in ("1", "true", "yes")
     dry_run = os.getenv("EMAIL_DRY_RUN", "false").strip().lower() in ("1", "true", "yes")
 
-    display_from = f"{from_name} <{from_address}>"
+    # from_address should match the authenticated account for inbox placement
+    resolved_from = user if user else from_address
+    display_from = f"{from_name} <{resolved_from}>"
 
     if dry_run:
         print(f"[EMAIL DRY RUN] plain email from={display_from} to={to_email} subject={subject}")
@@ -298,7 +301,7 @@ def send_plain_email(
             if use_tls:
                 server.starttls()
             server.login(user, password)
-            server.sendmail(from_address, [to_email], msg.as_string())
+            server.sendmail(resolved_from, [to_email], msg.as_string())
 
         return EmailSendResult(ok=True, error=None)
     except Exception as e:
