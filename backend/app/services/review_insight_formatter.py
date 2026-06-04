@@ -216,20 +216,20 @@ def format_insights_for_report(
     # Fallback to theme phrase if no concrete words
     display_praise = raw_phrase_str or praise_phrase
 
-    # ── Section 1: What patients are saying ──────────────────────────────
+    # ── Section 1: What customers are saying ──────────────────────────────
     what_patients_say: list[str] = []
 
     if display_praise:
         what_patients_say.append(
             _ensure_period(
-                f"When patients in your market leave positive reviews, the words that come up most are: {display_praise}. "
+                f"When customers in your market leave positive reviews, the words that come up most are: {display_praise}. "
                 f"These are the signals that build trust before someone even picks up the phone"
             )
         )
 
     if what_patients_say:
         sections.append(
-            "What Patients Are Saying\n"
+            "What Customers Are Saying\n"
             + "\n".join([s.strip() for s in what_patients_say])
         )
 
@@ -252,14 +252,14 @@ def format_insights_for_report(
         if actual_word_str:
             comp_lines.append(
                 _ensure_period(
-                    f"Their patients use words like \"{actual_word_str}\" — that's the reputation they've built, "
-                    f"and it's what new patients see when they're comparing options"
+                    f"Their customers use words like \"{actual_word_str}\" — that's the reputation they've built, "
+                    f"and it's what new customers see when they're comparing options"
                 )
             )
         elif top_competitor.get("praise"):
             comp_lines.append(
                 _ensure_period(
-                    f"Their patients are consistently praising them for {top_competitor['praise']}"
+                    f"Their customers are consistently praising them for {top_competitor['praise']}"
                 )
             )
 
@@ -281,14 +281,14 @@ def format_insights_for_report(
         sections.append(
             f"{gap_name}'s Weak Spot\n"
             + _ensure_period(
-                f"Their patients rave about {matched_gap['gap_left']}, "
+                f"Their customers rave about {matched_gap['gap_left']}, "
                 f"but their website leads with {matched_gap['gap_right']} — "
-                f"there's a gap between what patients value and what they're advertising"
+                f"there's a gap between what customers value and what they're advertising"
             )
             + "\n"
             + _ensure_period(
-                "Most patients decide where to go before they call. "
-                "If your messaging reflects what patients actually experience, you win more of those comparisons"
+                "Most customers decide where to go before they call. "
+                "If your messaging reflects what customers actually experience, you win more of those comparisons"
             )
         )
 
@@ -299,11 +299,11 @@ def format_insights_for_report(
             "Your Action This Month\n"
             + _ensure_period(
                 f"Make sure the words \"{action_words}\" show up in your Google Business profile, "
-                f"your website homepage, and in how you coach patients to leave reviews"
+                f"your website homepage, and in how you coach customers to leave reviews"
             )
             + "\n"
             + _ensure_period(
-                "You don't need to say everything — just pick the one or two things patients already love and repeat them until they become your reputation"
+                "You don't need to say everything — just pick the one or two things customers already love and repeat them until they become your reputation"
             )
         )
 

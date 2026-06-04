@@ -424,7 +424,7 @@ def _leader_fallback_recommendations(sections: Optional[Dict[str, Any]] = None) 
     # ── Card 3: credibility ────────────────────────────────────────────────
     if owner_reviews:
         why_credibility = (
-            f"With {owner_reviews:,} reviews and the #1 ranking, your lead should be visible to every patient comparing options. "
+            f"With {owner_reviews:,} reviews and the #1 ranking, your lead should be visible to every customer comparing options. "
             "Displaying it prominently turns your position into a conversion advantage."
         )
         how_credibility = (
