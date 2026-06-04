@@ -28,8 +28,10 @@ CATEGORIES_FRIENDLY = {
 def _friendly_category(category: str | None) -> str:
     if not category:
         return "business"
+    # Normalize spaces and underscores so "auto repair shop" matches "auto_repair"
+    normalized = (category or "").lower().replace(" ", "_")
     for key, label in CATEGORIES_FRIENDLY.items():
-        if key in (category or "").lower():
+        if key in normalized or key.replace("_", " ") in category.lower():
             return label
     return "business"
 
@@ -96,15 +98,13 @@ I ran a quick competitive snapshot for {business_name} - {review_line}.
 
 I built Pulse LCI to track this automatically. You get a monthly report showing exactly where you stand vs. your local competitors and the clearest actions to take.
 
-Here's a free report for {city} {cat}s: https://pulselci.com
+You can request a free report here: pulselci.com/#free-report
 
 Takes about 30 seconds.
 
 Craig
 Founder/CEO, Pulse LCI
 craig@pulselci.com
-
-To stop receiving these emails, reply with "unsubscribe" in the subject line.
 """
 
     return subject, body

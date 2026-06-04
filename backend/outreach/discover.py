@@ -183,8 +183,12 @@ def _is_junk_email(email: str) -> bool:
     local, _, domain = email.partition("@")
     local_lower = local.lower()
     domain_lower = domain.lower()
+    email_lower = email.lower()
 
-    # Reject if local part ends with an image/file extension (e.g. phone@2x.png)
+    # Reject if the full email string ends with a file extension (e.g. phone@2x.png, ico-arrow@2x.png)
+    if any(email_lower.endswith(ext) for ext in SKIP_LOCAL_EXTENSIONS):
+        return True
+    # Reject if local part ends with an image/file extension
     if any(local_lower.endswith(ext) for ext in SKIP_LOCAL_EXTENSIONS):
         return True
     # Reject known junk prefixes
@@ -199,33 +203,135 @@ def _is_junk_email(email: str) -> bool:
     return False
 
 
-def scrape_email_from_website(url: str) -> str | None:
-    """Try to scrape a contact email from the business website."""
-    if not url:
-        return None
-    try:
-        headers = {"User-Agent": "Mozilla/5.0 (compatible; PulseLCI/1.0)"}
-        r = requests.get(url, headers=headers, timeout=8, allow_redirects=True)
-        text = r.text
-    except Exception:
-        return None
+def _fetch_page_text(url: str) -> str | None:
+    """Fetch a single URL and return decoded text, or None on failure."""
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; PulseLCI/1.0)"}
+    r = requests.get(url, headers=headers, timeout=(3, 5), allow_redirects=True, stream=True)
+    content = b""
+    for chunk in r.iter_content(chunk_size=8192):
+        content += chunk
+        if len(content) > 81920:  # cap at 80 KB
+            break
+    return content.decode("utf-8", errors="ignore")
 
-    emails = EMAIL_PATTERN.findall(text)
-    candidates = [
-        e for e in emails
-        if not _is_junk_email(e) and len(e) < 80
-    ]
+
+def _extract_best_email(text: str) -> str | None:
+    """Pull the best candidate email out of a block of HTML text."""
+    # Prefer mailto: hrefs first — more reliable than regex on text
+    mailto_pattern = re.compile(r'href=["\']mailto:([^"\'?\s]+)', re.IGNORECASE)
+    mailto_hits = mailto_pattern.findall(text)
+    candidates = [e for e in mailto_hits if not _is_junk_email(e) and len(e) < 80]
+
+    # Fall back to plain email regex
+    if not candidates:
+        all_hits = EMAIL_PATTERN.findall(text)
+        candidates = [e for e in all_hits if not _is_junk_email(e) and len(e) < 80]
 
     if not candidates:
         return None
 
-    # Prefer common contact prefixes
     for email in candidates:
-        prefix = email.split("@")[0].lower()
-        if prefix in PREFERRED_PREFIXES:
+        if email.split("@")[0].lower() in PREFERRED_PREFIXES:
             return email.lower()
 
     return candidates[0].lower()
+
+
+def _do_scrape_multipages(base_url: str) -> str | None:
+    """Scrape homepage + common contact/about paths for an email address."""
+    from urllib.parse import urljoin, urlparse
+
+    parsed = urlparse(base_url)
+    root = f"{parsed.scheme}://{parsed.netloc}"
+
+    # Pages to try in order — stop as soon as we find something
+    paths_to_try = [
+        base_url,
+        urljoin(root, "/contact"),
+        urljoin(root, "/contact-us"),
+        urljoin(root, "/about"),
+        urljoin(root, "/about-us"),
+    ]
+
+    for url in paths_to_try:
+        try:
+            text = _fetch_page_text(url)
+            if text:
+                email = _extract_best_email(text)
+                if email:
+                    return email
+        except Exception:
+            continue
+
+    return None
+
+
+def scrape_email_from_website(base_url: str, hard_timeout: int = 20) -> str | None:
+    """Scrape homepage + contact/about pages with a hard wall-clock timeout."""
+    if not base_url:
+        return None
+
+    import threading
+    result: list[str | None] = [None]
+
+    def _run():
+        try:
+            result[0] = _do_scrape_multipages(base_url)
+        except Exception:
+            pass
+
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+    t.join(timeout=hard_timeout)
+    return result[0]
+
+
+# ---------------------------------------------------------------------------
+# Hunter.io fallback
+# ---------------------------------------------------------------------------
+
+HUNTER_API = "https://api.hunter.io/v2/domain-search"
+
+
+def lookup_email_hunter(domain: str) -> str | None:
+    """
+    Use Hunter.io to find a contact email for a domain.
+    Only runs if HUNTER_API_KEY is set in .env — silently skips otherwise.
+    Free tier: 25 searches/month. Paid: ~$49/mo for 500.
+    """
+    api_key = getattr(settings, "HUNTER_API_KEY", None) or ""
+    if not api_key:
+        return None
+
+    try:
+        r = requests.get(
+            HUNTER_API,
+            params={"domain": domain, "api_key": api_key, "limit": 5},
+            timeout=(4, 8),
+        )
+        r.raise_for_status()
+        data = r.json().get("data", {})
+        emails = data.get("emails", [])
+        if not emails:
+            return None
+
+        # Prefer generic/department addresses over personal ones
+        for entry in emails:
+            email = (entry.get("value") or "").lower()
+            etype = (entry.get("type") or "").lower()
+            if etype == "generic" and not _is_junk_email(email):
+                return email
+
+        # Fall back to first valid email
+        for entry in emails:
+            email = (entry.get("value") or "").lower()
+            if email and not _is_junk_email(email):
+                return email
+
+    except Exception as e:
+        print(f"  [WARN] Hunter.io lookup failed for {domain}: {e}")
+
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -352,10 +458,20 @@ def discover(city: str, state: str, categories: list[str]) -> None:
                 top_competitor_reviews = competitor.get("user_ratings_total")
                 print(f"  Top competitor: {top_competitor_name} ({top_competitor_reviews} reviews)")
 
-            # Scrape email
+            # Scrape email from homepage + contact/about pages
             contact_email = scrape_email_from_website(website) if website else None
+            email_source = "scrape"
+
+            # Fallback: Hunter.io domain lookup
+            if not contact_email and website:
+                from urllib.parse import urlparse
+                domain = urlparse(website).netloc.lstrip("www.")
+                if domain:
+                    contact_email = lookup_email_hunter(domain)
+                    email_source = "hunter"
+
             if contact_email:
-                print(f"  Email found: {contact_email}")
+                print(f"  Email found ({email_source}): {contact_email}")
             else:
                 print(f"  No email found (website: {website or 'none'})")
 

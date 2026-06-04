@@ -302,5 +302,5 @@ def send_plain_email(
 
         return EmailSendResult(ok=True, error=None)
     except Exception as e:
-        logger.warning(f"[EMAIL] plain email failed to={to_email}: {e}")
+        print(f"[EMAIL] plain email failed to={to_email}: {e}")
         return EmailSendResult(ok=False, error=str(e))

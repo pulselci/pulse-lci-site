@@ -263,8 +263,10 @@ async function approve(id) {
 
   try {
     const r = await fetch(`${API}/outreach/${id}/approve`, { method: 'POST' });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.detail || r.statusText);
+    const text = await r.text();
+    let data = {};
+    try { data = JSON.parse(text); } catch(_) {}
+    if (!r.ok) throw new Error(data.detail || text.slice(0, 120) || r.statusText);
     setMsg(id, `✓ Sent to ${data.sent_to}`, false);
     setTimeout(() => loadQueue(), 1200);
   } catch(e) {

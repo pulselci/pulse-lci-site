@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     GOOGLE_PLACES_API_KEY: str | None = None
     GOOGLE_PLACES_FIELDS: str = "rating,user_ratings_total"
 
+    # Hunter.io (optional — email lookup fallback for outreach)
+    HUNTER_API_KEY: str | None = None
+
     # -------------------------
     # Stripe (Billing)
     # -------------------------
