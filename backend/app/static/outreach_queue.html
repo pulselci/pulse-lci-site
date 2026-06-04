@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulse LCI — Outreach Queue</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; background: #f0f4f9; color: #172033; min-height: 100vh; }
+
+  .topbar { background: #122033; color: #fff; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar-title { font-size: 15px; font-weight: 700; letter-spacing: 0.04em; }
+  .topbar-sub { font-size: 12px; color: #8a9fbe; }
+
+  .stats-bar { background: #fff; border-bottom: 1px solid #dce6f5; padding: 12px 28px; display: flex; gap: 24px; }
+  .stat { font-size: 13px; color: #5c6f91; }
+  .stat strong { color: #122033; font-size: 16px; margin-right: 4px; }
+
+  .filter-bar { padding: 16px 28px 0; display: flex; gap: 10px; align-items: center; }
+  .filter-bar label { font-size: 13px; color: #5c6f91; }
+  select { font-size: 13px; padding: 6px 10px; border: 1px solid #c8d8ee; border-radius: 8px; background: #fff; color: #172033; }
+
+  .queue { padding: 20px 28px; display: flex; flex-direction: column; gap: 16px; max-width: 900px; }
+
+  .card { background: #fff; border: 1px solid #dce6f5; border-radius: 14px; overflow: hidden; }
+  .card-header { padding: 16px 20px 12px; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #f0f4f9; }
+  .card-title { font-size: 16px; font-weight: 700; color: #122033; }
+  .card-meta { font-size: 12px; color: #62738f; margin-top: 3px; }
+  .badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; }
+  .badge-draft { background: #e8f0ff; color: #2c5eff; }
+  .badge-no-email { background: #fff3e0; color: #e65100; }
+  .badge-sent { background: #e8f5e9; color: #2e7d32; }
+  .badge-skipped { background: #f5f5f5; color: #9e9e9e; }
+
+  .card-body { padding: 16px 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .info-block h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #8a9ab5; font-weight: 700; margin-bottom: 6px; }
+  .info-block p { font-size: 13px; color: #30415f; }
+  .info-block a { color: #2c5eff; text-decoration: none; font-size: 13px; }
+  .info-block a:hover { text-decoration: underline; }
+
+  .email-preview { grid-column: 1 / -1; }
+  .email-preview textarea { width: 100%; height: 180px; font-size: 13px; font-family: inherit; line-height: 1.6; color: #172033; border: 1px solid #c8d8ee; border-radius: 8px; padding: 12px; resize: vertical; }
+  .email-subject input { width: 100%; font-size: 13px; font-family: inherit; color: #172033; border: 1px solid #c8d8ee; border-radius: 8px; padding: 8px 12px; }
+
+  .contact-email-row { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; }
+  .contact-email-row input { flex: 1; font-size: 13px; padding: 8px 12px; border: 1px solid #c8d8ee; border-radius: 8px; }
+
+  .card-footer { padding: 12px 20px; border-top: 1px solid #f0f4f9; display: flex; gap: 10px; justify-content: flex-end; align-items: center; }
+  .msg { font-size: 12px; color: #62738f; flex: 1; }
+  .msg.success { color: #2e7d32; }
+  .msg.error { color: #c62828; }
+
+  button { font-size: 13px; font-weight: 600; padding: 8px 18px; border: none; border-radius: 8px; cursor: pointer; transition: opacity 0.15s; }
+  button:hover { opacity: 0.85; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-approve { background: #122033; color: #fff; }
+  .btn-skip { background: #f0f4f9; color: #5c6f91; }
+  .btn-save { background: #e8f0ff; color: #2c5eff; }
+
+  .empty { text-align: center; padding: 60px 20px; color: #8a9ab5; font-size: 15px; }
+  .loading { text-align: center; padding: 60px; color: #8a9ab5; }
+
+  .review-pill { display: inline-flex; align-items: center; gap: 5px; background: #f0f4f9; border-radius: 20px; padding: 3px 10px; font-size: 12px; font-weight: 600; color: #30415f; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <div class="topbar-title">Pulse LCI — Outreach Queue</div>
+    <div class="topbar-sub">Review and approve cold email drafts before they send</div>
+  </div>
+  <button class="btn-save" onclick="loadQueue()" style="font-size:12px;padding:6px 14px;">↻ Refresh</button>
+</div>
+
+<div class="stats-bar" id="stats-bar">
+  <div class="stat"><strong id="stat-draft">—</strong> ready to review</div>
+  <div class="stat"><strong id="stat-sent">—</strong> sent</div>
+  <div class="stat"><strong id="stat-skipped">—</strong> skipped</div>
+  <div class="stat"><strong id="stat-no-email">—</strong> no email found</div>
+</div>
+
+<div class="filter-bar">
+  <label for="status-filter">Show:</label>
+  <select id="status-filter" onchange="loadQueue()">
+    <option value="draft_ready">Ready to send</option>
+    <option value="no_email">No email found</option>
+    <option value="sent">Sent</option>
+    <option value="skipped">Skipped</option>
+  </select>
+</div>
+
+<div class="queue" id="queue">
+  <div class="loading">Loading prospects…</div>
+</div>
+
+<script>
+const API = window.location.origin;
+
+async function loadStats() {
+  try {
+    const r = await fetch(`${API}/outreach/stats`);
+    const data = await r.json();
+    document.getElementById('stat-draft').textContent = data['draft_ready'] || 0;
+    document.getElementById('stat-sent').textContent = data['sent'] || 0;
+    document.getElementById('stat-skipped').textContent = data['skipped'] || 0;
+    document.getElementById('stat-no-email').textContent = data['no_email'] || 0;
+  } catch(e) { console.warn('stats failed', e); }
+}
+
+async function loadQueue() {
+  const status = document.getElementById('status-filter').value;
+  const queue = document.getElementById('queue');
+  queue.innerHTML = '<div class="loading">Loading…</div>';
+  loadStats();
+
+  try {
+    const r = await fetch(`${API}/outreach/queue?status=${status}&limit=50`);
+    if (!r.ok) throw new Error(await r.text());
+    const prospects = await r.json();
+
+    if (!prospects.length) {
+      queue.innerHTML = `<div class="empty">No prospects with status "${status}".<br>Run <code>python -m outreach.discover --city "YourCity" --state "TX"</code> to discover more.</div>`;
+      return;
+    }
+
+    queue.innerHTML = '';
+    prospects.forEach(p => queue.appendChild(renderCard(p)));
+  } catch(e) {
+    queue.innerHTML = `<div class="empty" style="color:#c62828">Failed to load: ${e.message}</div>`;
+  }
+}
+
+function renderCard(p) {
+  const div = document.createElement('div');
+  div.className = 'card';
+  div.id = `card-${p.id}`;
+
+  const badgeClass = {
+    draft_ready: 'badge-draft',
+    no_email: 'badge-no-email',
+    sent: 'badge-sent',
+    skipped: 'badge-skipped',
+  }[p.status] || 'badge-draft';
+
+  const badgeLabel = {
+    draft_ready: 'Ready',
+    no_email: 'No Email',
+    sent: 'Sent',
+    skipped: 'Skipped',
+  }[p.status] || p.status;
+
+  const reviewPill = p.reviews_count
+    ? `<span class="review-pill">⭐ ${p.rating || '—'} &nbsp;·&nbsp; ${p.reviews_count} reviews</span>`
+    : '';
+
+  const compInfo = p.top_competitor_name
+    ? `vs. ${p.top_competitor_name} (${p.top_competitor_reviews} reviews)`
+    : 'No competitor data';
+
+  const isReadOnly = p.status === 'sent' || p.status === 'skipped';
+  const readOnly = isReadOnly ? 'readonly' : '';
+  const readOnlyStyle = isReadOnly ? 'background:#f9fafb;color:#888;' : '';
+
+  div.innerHTML = `
+    <div class="card-header">
+      <div>
+        <div class="card-title">${escHtml(p.business_name)}</div>
+        <div class="card-meta">${escHtml(p.address || '')} &nbsp;${reviewPill}</div>
+      </div>
+      <span class="badge ${badgeClass}">${badgeLabel}</span>
+    </div>
+    <div class="card-body">
+      <div class="info-block">
+        <h4>Competitive Position</h4>
+        <p>${escHtml(compInfo)}</p>
+      </div>
+      <div class="info-block">
+        <h4>Contact</h4>
+        <p>${p.phone ? escHtml(p.phone) : '—'}${p.website ? ` &nbsp;·&nbsp; <a href="${escHtml(p.website)}" target="_blank">website ↗</a>` : ''}</p>
+      </div>
+      <div class="contact-email-row">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a9ab5;white-space:nowrap;">Contact Email</div>
+        <input id="email-${p.id}" type="email" value="${escHtml(p.contact_email || '')}" placeholder="Enter email if not found automatically" ${readOnly} style="${readOnlyStyle}">
+      </div>
+      <div class="email-subject">
+        <h4>Subject</h4>
+        <input id="subject-${p.id}" type="text" value="${escHtml(p.draft_subject || '')}" ${readOnly} style="${readOnlyStyle}">
+      </div>
+      <div class="email-preview">
+        <h4>Email Body</h4>
+        <textarea id="body-${p.id}" ${readOnly} style="${readOnlyStyle}">${escHtml(p.draft_body || '')}</textarea>
+      </div>
+    </div>
+    <div class="card-footer">
+      <span class="msg" id="msg-${p.id}"></span>
+      ${!isReadOnly ? `
+        <button class="btn-save" onclick="saveDraft('${p.id}')">Save edits</button>
+        <button class="btn-skip" onclick="skip('${p.id}')">Skip</button>
+        <button class="btn-approve" onclick="approve('${p.id}')">✓ Approve &amp; Send</button>
+      ` : ''}
+    </div>
+  `;
+  return div;
+}
+
+function setMsg(id, text, isError) {
+  const el = document.getElementById(`msg-${id}`);
+  if (!el) return;
+  el.textContent = text;
+  el.className = 'msg ' + (isError ? 'error' : 'success');
+}
+
+async function saveDraft(id) {
+  const email = document.getElementById(`email-${id}`).value.trim();
+  const subject = document.getElementById(`subject-${id}`).value.trim();
+  const body = document.getElementById(`body-${id}`).value.trim();
+
+  try {
+    const r = await fetch(`${API}/outreach/${id}/draft`, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ contact_email: email || null, draft_subject: subject || null, draft_body: body || null }),
+    });
+    if (!r.ok) throw new Error(await r.text());
+    setMsg(id, 'Saved.', false);
+    // Update status to draft_ready if email was just added
+    if (email) {
+      await fetch(`${API}/outreach/${id}/draft`, {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ contact_email: email }),
+      });
+    }
+    loadStats();
+  } catch(e) {
+    setMsg(id, `Save failed: ${e.message}`, true);
+  }
+}
+
+async function skip(id) {
+  if (!confirm('Skip this prospect?')) return;
+  try {
+    const r = await fetch(`${API}/outreach/${id}/skip`, { method: 'POST' });
+    if (!r.ok) throw new Error(await r.text());
+    document.getElementById(`card-${id}`).remove();
+    loadStats();
+  } catch(e) {
+    setMsg(id, `Failed: ${e.message}`, true);
+  }
+}
+
+async function approve(id) {
+  const email = document.getElementById(`email-${id}`)?.value.trim();
+  if (!email) {
+    setMsg(id, 'Add a contact email first.', true);
+    return;
+  }
+  if (!confirm(`Send this email to ${email}?`)) return;
+
+  // Save latest edits first
+  await saveDraft(id);
+
+  try {
+    const r = await fetch(`${API}/outreach/${id}/approve`, { method: 'POST' });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || r.statusText);
+    setMsg(id, `✓ Sent to ${data.sent_to}`, false);
+    setTimeout(() => loadQueue(), 1200);
+  } catch(e) {
+    setMsg(id, `Send failed: ${e.message}`, true);
+  }
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Init
+loadQueue();
+</script>
+</body>
+</html>

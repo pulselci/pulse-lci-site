@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse
 
 from app.api.generated_reports import router as generated_reports_router
 from app.api.intake import router as intake_router
+from app.api.outreach import router as outreach_router
 from app.api.routes import router as api_router
 from app.core.db import close_pool
 
@@ -31,10 +32,19 @@ app.include_router(generated_reports_router)
 # Prospect intake (free report request form)
 app.include_router(intake_router)
 
+# Outreach approval queue
+app.include_router(outreach_router)
+
 
 @app.get("/admin/onboarding", include_in_schema=False)
 def onboarding_form():
     html_path = Path(__file__).resolve().parent / "static" / "onboarding.html"
+    return FileResponse(html_path)
+
+
+@app.get("/outreach/ui", include_in_schema=False)
+def outreach_queue_ui():
+    html_path = Path(__file__).resolve().parent / "static" / "outreach_queue.html"
     return FileResponse(html_path)
 
 
