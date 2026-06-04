@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     # Hunter.io (optional — email lookup fallback for outreach)
     HUNTER_API_KEY: str | None = None
 
+    # Apollo.io (optional — email lookup fallback, higher hit rate than Hunter)
+    APOLLO_API_KEY: str | None = None
+
     # -------------------------
     # Stripe (Billing)
     # -------------------------

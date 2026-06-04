@@ -215,36 +215,30 @@ def _fetch_page_text(url: str) -> str | None:
     return content.decode("utf-8", errors="ignore")
 
 
-def _extract_best_email(text: str) -> str | None:
-    """Pull the best candidate email out of a block of HTML text."""
-    # Prefer mailto: hrefs first — more reliable than regex on text
+def _collect_emails_from_text(text: str) -> list[str]:
+    """Return all valid email candidates from a page (mailto: hrefs first, then regex)."""
     mailto_pattern = re.compile(r'href=["\']mailto:([^"\'?\s]+)', re.IGNORECASE)
-    mailto_hits = mailto_pattern.findall(text)
-    candidates = [e for e in mailto_hits if not _is_junk_email(e) and len(e) < 80]
+    seen = set()
+    results = []
 
-    # Fall back to plain email regex
-    if not candidates:
-        all_hits = EMAIL_PATTERN.findall(text)
-        candidates = [e for e in all_hits if not _is_junk_email(e) and len(e) < 80]
+    for e in mailto_pattern.findall(text) + EMAIL_PATTERN.findall(text):
+        e = e.lower()
+        if e not in seen and not _is_junk_email(e) and len(e) < 80:
+            seen.add(e)
+            results.append(e)
 
-    if not candidates:
-        return None
-
-    for email in candidates:
-        if email.split("@")[0].lower() in PREFERRED_PREFIXES:
-            return email.lower()
-
-    return candidates[0].lower()
+    return results
 
 
 def _do_scrape_multipages(base_url: str) -> str | None:
-    """Scrape homepage + common contact/about paths for an email address."""
+    """Scrape homepage + common contact/about paths, collect ALL emails,
+    then pick the best one: own domain > preferred prefix > first valid."""
     from urllib.parse import urljoin, urlparse
 
     parsed = urlparse(base_url)
     root = f"{parsed.scheme}://{parsed.netloc}"
+    own_domain = parsed.netloc.lower().lstrip("www.")
 
-    # Pages to try in order — stop as soon as we find something
     paths_to_try = [
         base_url,
         urljoin(root, "/contact"),
@@ -253,16 +247,31 @@ def _do_scrape_multipages(base_url: str) -> str | None:
         urljoin(root, "/about-us"),
     ]
 
+    all_emails: list[str] = []
+    seen: set[str] = set()
+
     for url in paths_to_try:
         try:
             text = _fetch_page_text(url)
             if text:
-                email = _extract_best_email(text)
-                if email:
-                    return email
+                for e in _collect_emails_from_text(text):
+                    if e not in seen:
+                        seen.add(e)
+                        all_emails.append(e)
         except Exception:
             continue
 
+    if not all_emails:
+        return None
+
+    # 1. Own domain match — always wins
+    for e in all_emails:
+        if e.split("@")[-1].lstrip("www.") == own_domain:
+            return e
+
+    # No own-domain email found — don't fall back to third-party emails
+    # (booking widgets, analytics platforms, etc. show up on every page and
+    # will bounce or go to the wrong person). Mark as no_email instead.
     return None
 
 
@@ -330,6 +339,57 @@ def lookup_email_hunter(domain: str) -> str | None:
 
     except Exception as e:
         print(f"  [WARN] Hunter.io lookup failed for {domain}: {e}")
+
+    return None
+
+
+APOLLO_PEOPLE_SEARCH = "https://api.apollo.io/v1/mixed_people/search"
+
+# Job titles likely to be the decision-maker at a small local business
+APOLLO_TARGET_TITLES = ["owner", "founder", "president", "ceo", "manager", "general manager", "director"]
+
+
+def lookup_email_apollo(domain: str, business_name: str | None = None) -> str | None:
+    """
+    Use Apollo.io People Search to find a contact email for a domain.
+    Only runs if APOLLO_API_KEY is set in .env — silently skips otherwise.
+    Targets owner/founder/manager titles first, then any verified email.
+    """
+    api_key = getattr(settings, "APOLLO_API_KEY", None) or ""
+    if not api_key:
+        return None
+
+    try:
+        payload = {
+            "api_key": api_key,
+            "q_organization_domains": domain,
+            "per_page": 10,
+            "contact_email_status[]": ["verified", "likely to engage"],
+        }
+        r = requests.post(APOLLO_PEOPLE_SEARCH, json=payload, timeout=(4, 10))
+        r.raise_for_status()
+        people = r.json().get("people", [])
+
+        if not people:
+            return None
+
+        # Prefer decision-maker titles
+        for person in people:
+            title = (person.get("title") or "").lower()
+            email = (person.get("email") or "").lower()
+            if not email or _is_junk_email(email):
+                continue
+            if any(t in title for t in APOLLO_TARGET_TITLES):
+                return email
+
+        # Fall back to first person with a valid email
+        for person in people:
+            email = (person.get("email") or "").lower()
+            if email and not _is_junk_email(email):
+                return email
+
+    except Exception as e:
+        print(f"  [WARN] Apollo lookup failed for {domain}: {e}")
 
     return None
 
@@ -462,13 +522,21 @@ def discover(city: str, state: str, categories: list[str]) -> None:
             contact_email = scrape_email_from_website(website) if website else None
             email_source = "scrape"
 
-            # Fallback: Hunter.io domain lookup
+            # Fallback 1: Hunter.io domain lookup
             if not contact_email and website:
                 from urllib.parse import urlparse
                 domain = urlparse(website).netloc.lstrip("www.")
                 if domain:
                     contact_email = lookup_email_hunter(domain)
                     email_source = "hunter"
+
+            # Fallback 2: Apollo.io people search
+            if not contact_email and website:
+                from urllib.parse import urlparse
+                domain = urlparse(website).netloc.lstrip("www.")
+                if domain:
+                    contact_email = lookup_email_apollo(domain, business_name=name)
+                    email_source = "apollo"
 
             if contact_email:
                 print(f"  Email found ({email_source}): {contact_email}")
