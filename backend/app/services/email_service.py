@@ -197,14 +197,15 @@ def send_report_email(
             </p>
         </div>
 
-        {f'''
-        <div style="text-align: center; margin-top: 18px;">
-            <a href="https://pulse-lci-api.onrender.com/billing/portal/{business_id}"
-               style="font-size: 12px; color: #8a9ab5; text-decoration: underline;">
+        <div style="text-align: center; margin-top: 20px; font-size: 11px; color: #8a9ab5; line-height: 1.6;">
+            {f'''<a href="https://pulse-lci-api.onrender.com/billing/portal/{business_id}"
+               style="color: #8a9ab5; text-decoration: underline;">
                 Manage or cancel your subscription
-            </a>
+            </a> &nbsp;·&nbsp; ''' if business_id and _has_stripe_customer(business_id) else ''}
+            <span>To unsubscribe from these reports, reply to this email with "unsubscribe" in the subject line.</span>
+            <br>
+            <span>Pulse LCI &nbsp;·&nbsp; United States</span>
         </div>
-        ''' if business_id and _has_stripe_customer(business_id) else ''}
 
         </div>
     </body>
