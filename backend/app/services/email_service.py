@@ -298,7 +298,7 @@ def send_plain_email(
             if use_tls:
                 server.starttls()
             server.login(user, password)
-            server.sendmail(from_email, [to_email], msg.as_string())
+            server.sendmail(from_address, [to_email], msg.as_string())
 
         return EmailSendResult(ok=True, error=None)
     except Exception as e:
