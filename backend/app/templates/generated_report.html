@@ -504,12 +504,12 @@
 
   <div class="page">
     <div class="header">
-      {% if logo_data_uri %}
-      <div style="margin-bottom: 8px;">
-        <img src="{{ logo_data_uri }}" alt="Pulse LCI" style="height: 44px; width: auto;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+        {% if logo_data_uri %}
+        <img src="{{ logo_data_uri }}" alt="Pulse LCI" style="height:32px; width:auto;">
+        {% endif %}
+        <span style="font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:#5c6f91;">Pulse · Local Competitor Intelligence</span>
       </div>
-      {% endif %}
-      <div class="eyebrow">Pulse · Local Competitor Intelligence</div>
 
       <div class="title-row">
         <div class="title-col">
