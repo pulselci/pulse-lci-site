@@ -52,57 +52,55 @@ def generate_draft(
     reviews = reviews_count or 0
     stars = f"{rating:.1f}" if rating else ""
 
-    # Build competitive context — one sentence, no em dashes
+    # Build gap/lead line and opening
     if top_competitor_name and top_competitor_reviews is not None:
         gap = reviews - top_competitor_reviews
         if gap > 0:
-            comp_line = (
-                f"You're ahead of {top_competitor_name}, "
-                f"but that lead tends to shrink faster than most owners expect."
-            )
+            gap_line = f"That's a lead of {gap} reviews."
+            comp_context = f"Leads like that tend to shrink faster than most owners expect."
         elif gap < 0:
-            comp_line = (
-                f"You're {abs(gap)} reviews behind {top_competitor_name}. "
-                f"Businesses that close gaps like that usually do it with a steady weekly cadence, not one big push."
+            gap_line = f"That's a gap of {abs(gap)} reviews."
+            comp_context = f"Businesses that close gaps like that usually do it with a steady weekly cadence, not one big push."
+        else:
+            gap_line = f"You're running neck and neck."
+            comp_context = f"That's when review velocity becomes the tiebreaker."
+
+        if reviews and stars:
+            opening = (
+                f"I was reviewing {cat}s in {city} and noticed {business_name} has "
+                f"{reviews} Google reviews ({stars} stars) while {top_competitor_name} has {top_competitor_reviews}."
             )
         else:
-            comp_line = (
-                f"You and {top_competitor_name} are running about even right now. "
-                f"That's when review velocity becomes the tiebreaker."
+            opening = (
+                f"I was reviewing {cat}s in {city} and noticed {business_name} "
+                f"while {top_competitor_name} nearby has {top_competitor_reviews} reviews."
             )
-        competitor_mention = f", and {top_competitor_name} nearby has {top_competitor_reviews}"
     else:
-        comp_line = (
-            f"Most {cat}s don't have a clear picture of where they actually stand "
-            f"relative to their local competition on reviews."
-        )
-        competitor_mention = ""
-
-    # Build the opening data line
-    if reviews and stars:
-        data_line = f"You're sitting at {reviews} reviews ({stars} stars){competitor_mention}."
-    elif reviews:
-        data_line = f"You're sitting at {reviews} reviews{competitor_mention}."
-    else:
-        data_line = f"I pulled some data on your local market."
+        gap_line = ""
+        comp_context = f"Most {cat}s don't have a clear picture of where they stand relative to local competition on reviews."
+        if reviews and stars:
+            opening = f"I was reviewing {cat}s in {city} and noticed {business_name} has {reviews} Google reviews ({stars} stars)."
+        else:
+            opening = f"I was reviewing {cat}s in {city} and came across {business_name}."
 
     subject = f"Quick question for {business_name}"
 
     body = f"""Hi,
 
-I was looking at review data for {city} {cat}s and came across {business_name}. {data_line}
+{opening}
 
-{comp_line}
+{gap_line + chr(10) + chr(10) if gap_line else ""}{comp_context}
 
-Quick question: is staying on top of your local review position something you're actively working on, or more of a "whenever it happens" situation?
+Quick question:
 
-I ask because I built a tool called Pulse LCI that tracks this monthly and sends a report showing exactly where you stand vs. your local competitors and the clearest move to make.
+Is improving your local review position something you're actively tracking, or more of a "whenever it happens" situation?
 
-If it sounds useful, just reply with the names of up to 3 of your closest local competitors and I'll pull a free report for you. Or you can request one yourself at pulselci.com/#free-report.
+I built a tool called Pulse LCI that tracks this automatically and shows exactly where competitors are gaining ground.
+
+If you'd like, reply with the names of your top 3 competitors and I'll send a free report. Or request one at pulselci.com/#free-report.
 
 Craig White
-Founder/CEO, Pulse LCI
-craig@pulselci.com
+Pulse LCI
 """
 
     return subject, body
