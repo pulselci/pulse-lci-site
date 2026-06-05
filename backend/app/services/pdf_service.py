@@ -90,7 +90,19 @@ def render_report_pdf(report: Any) -> bytes:
     try:
         template = env.get_template("generated_report.html")
         next_report_date = _get_next_report_date(report_dict.get("schedule_id"))
-        html = template.render(report=report_dict, next_report_date=next_report_date)
+
+        # Load logo as base64 data URI so Playwright doesn't need a network request
+        logo_data_uri = ""
+        logo_path = Path(__file__).resolve().parent.parent / "static" / "pulse-lci-logo.png"
+        if logo_path.exists():
+            import base64
+            logo_data_uri = "data:image/png;base64," + base64.b64encode(logo_path.read_bytes()).decode()
+
+        html = template.render(
+            report=report_dict,
+            next_report_date=next_report_date,
+            logo_data_uri=logo_data_uri,
+        )
 
         html_debug_path = debug_dir / "last_rendered_report.html"
         html_debug_path.write_text(html, encoding="utf-8")
