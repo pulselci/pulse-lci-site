@@ -85,21 +85,35 @@
 
 <div style="background:#fff; border-bottom: 1px solid #dce6f5; padding: 16px 28px;">
   <div style="font-size: 13px; font-weight: 700; color: #122033; margin-bottom: 10px;">Find New Prospects</div>
-  <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+
+  <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 10px;">
     <div>
       <label style="font-size: 11px; color: #62738f; display:block; margin-bottom:3px;">City</label>
-      <input id="disc-city" type="text" placeholder="Dallas" style="font-size:13px; padding:7px 10px; border:1px solid #c8d8ee; border-radius:8px; width:140px;">
+      <input id="disc-city" type="text" placeholder="Chicago" style="font-size:13px; padding:7px 10px; border:1px solid #c8d8ee; border-radius:8px; width:140px;">
     </div>
     <div>
       <label style="font-size: 11px; color: #62738f; display:block; margin-bottom:3px;">State</label>
-      <input id="disc-state" type="text" placeholder="TX" maxlength="2" style="font-size:13px; padding:7px 10px; border:1px solid #c8d8ee; border-radius:8px; width:60px; text-transform:uppercase;">
+      <input id="disc-state" type="text" placeholder="IL" maxlength="2" style="font-size:13px; padding:7px 10px; border:1px solid #c8d8ee; border-radius:8px; width:60px; text-transform:uppercase;">
     </div>
-    <div style="flex:1; min-width:200px;">
-      <label style="font-size: 11px; color: #62738f; display:block; margin-bottom:3px;">Categories (comma-separated)</label>
-      <input id="disc-categories" type="text" placeholder="auto repair shop, dental office, medical spa" style="font-size:13px; padding:7px 10px; border:1px solid #c8d8ee; border-radius:8px; width:100%;">
+    <div style="flex:1; min-width:220px;">
+      <label style="font-size: 11px; color: #62738f; display:block; margin-bottom:3px;">Business Type</label>
+      <input id="disc-categories" type="text" placeholder="Select a preset below or type custom terms" style="font-size:13px; padding:7px 10px; border:1px solid #c8d8ee; border-radius:8px; width:100%;">
     </div>
     <button class="btn-approve" id="disc-btn" onclick="startDiscovery()" style="padding:8px 20px; white-space:nowrap;">🔍 Find Prospects</button>
-    <span id="disc-status" style="font-size:12px; color:#62738f;"></span>
+  </div>
+
+  <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-bottom:6px;">
+    <span style="font-size:11px; color:#8a9ab5; font-weight:700; text-transform:uppercase; letter-spacing:.06em; margin-right:4px;">Quick select:</span>
+    <button class="btn-skip" onclick="setCategory('dental office,dentist,dental clinic,family dentistry')" style="font-size:12px;padding:4px 12px;border-radius:20px;">🦷 Dental</button>
+    <button class="btn-skip" onclick="setCategory('auto repair shop,auto mechanic,car repair,automotive service')" style="font-size:12px;padding:4px 12px;border-radius:20px;">🔧 Auto Repair</button>
+    <button class="btn-skip" onclick="setCategory('medical spa,med spa,medspa,aesthetic clinic,laser spa')" style="font-size:12px;padding:4px 12px;border-radius:20px;">💆 Med Spa</button>
+    <button class="btn-skip" onclick="setCategory('hvac contractor,air conditioning contractor,heating contractor,hvac service')" style="font-size:12px;padding:4px 12px;border-radius:20px;">❄️ HVAC</button>
+    <button class="btn-skip" onclick="setCategory('plumber,plumbing service,roofing contractor,electrician,handyman')" style="font-size:12px;padding:4px 12px;border-radius:20px;">🏠 Home Services</button>
+    <button class="btn-skip" onclick="setCategory('chiropractor,chiropractic clinic')" style="font-size:12px;padding:4px 12px;border-radius:20px;">🩺 Chiro</button>
+    <button class="btn-skip" onclick="setCategory('gym,fitness center,personal trainer')" style="font-size:12px;padding:4px 12px;border-radius:20px;">💪 Gym</button>
+  </div>
+  <div style="font-size:11px; color:#8a9ab5;">
+    <span id="disc-status"></span>
   </div>
 </div>
 
@@ -368,6 +382,11 @@ async function startDiscovery() {
     btn.disabled = false;
     btn.textContent = '🔍 Find Prospects';
   }
+}
+
+function setCategory(value) {
+  document.getElementById('disc-categories').value = value;
+  document.getElementById('disc-categories').focus();
 }
 
 // Init

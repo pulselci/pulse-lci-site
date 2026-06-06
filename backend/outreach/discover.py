@@ -46,6 +46,15 @@ DEFAULT_CATEGORIES = [
     "physical therapy",
 ]
 
+# Expanded aliases — use these when running a specific vertical to maximize results.
+# Pass multiple comma-separated values via --categories in the CLI or the UI.
+# Examples:
+#   dental:     "dental office,dentist,dental clinic,family dentistry"
+#   auto:       "auto repair shop,auto mechanic,car repair,automotive service"
+#   med spa:    "medical spa,med spa,medspa,laser spa,aesthetic clinic"
+#   hvac:       "hvac contractor,air conditioning contractor,heating contractor"
+#   home svcs:  "plumber,plumbing service,roofing contractor,electrician"
+
 # Chains to skip (partial match, lowercase)
 CHAIN_BLOCKLIST = [
     "jiffy lube", "midas", "firestone", "pep boys", "meineke",
@@ -56,9 +65,9 @@ CHAIN_BLOCKLIST = [
 ]
 
 MIN_REVIEWS = 15       # must have enough reviews to be worth targeting
-MAX_REVIEWS = 800      # avoid dominant players (hard to sell to)
+MAX_REVIEWS = 2000     # avoid truly dominant chains (raised from 800 for large markets)
 MIN_RATING = 3.2       # too low = dying business
-MAX_RATING = 4.85      # near-perfect = low urgency
+MAX_RATING = 4.95      # near-perfect = low urgency (raised slightly)
 
 GOOGLE_PLACES_TEXT_SEARCH = "https://maps.googleapis.com/maps/api/place/textsearch/json"
 GOOGLE_PLACES_DETAILS = "https://maps.googleapis.com/maps/api/place/details/json"
