@@ -2594,6 +2594,32 @@ def cron_run_scheduled_reports(request: Request, background_tasks: BackgroundTas
     return {"status": "started", "due": len(due), "queued": len(due)}
 
 
+@router.post("/cron/send-followups")
+def cron_send_followups(request: Request, background_tasks: BackgroundTasks):
+    """
+    Sends Day-5 and Day-12 follow-ups for cold email prospects, plus
+    Day-5, Day-12, and Day-21 follow-ups for free-report recipients
+    who haven't yet subscribed.
+
+    Run daily via Render cron at 9:00 AM ET.
+    """
+    admin_key = request.headers.get("x-admin-key") or request.headers.get("X-Admin-Key")
+    if admin_key != settings.ADMIN_API_KEY:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    from app.jobs.send_followups import run_all_followups
+
+    def _run():
+        try:
+            result = run_all_followups()
+            logger.info("cron/send-followups complete: %s", result)
+        except Exception as exc:
+            logger.exception("cron/send-followups failed: %s", exc)
+
+    background_tasks.add_task(_run)
+    return {"status": "started"}
+
+
 # --------------------
 # Reports (legacy "reports" table)
 # --------------------
