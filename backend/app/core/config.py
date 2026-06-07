@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     OUTREACH_SMTP_USER: str | None = None
     OUTREACH_SMTP_PASS: str | None = None
 
+    # Outscraper — bulk review ingestion (replaces Google's 5-review cap)
+    OUTSCRAPER_API_KEY: str | None = None
+
     # Google Places (Phase C4+)
     GOOGLE_PLACES_API_KEY: str | None = None
     GOOGLE_PLACES_FIELDS: str = "rating,user_ratings_total"

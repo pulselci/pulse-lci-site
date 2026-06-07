@@ -167,6 +167,95 @@ def fetch_google_place_reviews(
 
     return reviews
 
+OUTSCRAPER_REVIEWS_URL = "https://api.app.outscraper.com/maps/reviews-v3"
+OUTSCRAPER_DEFAULT_LIMIT = 100  # reviews per place — well above Google's 5-review cap
+
+
+def fetch_outscraper_reviews(
+    google_place_id: str,
+    *,
+    limit: int = OUTSCRAPER_DEFAULT_LIMIT,
+) -> List[Dict[str, Any]]:
+    """
+    Fetch up to `limit` reviews for a place via Outscraper's Maps Reviews API.
+
+    Returns a list of dicts normalised to match the shape expected by
+    map_google_review() so the rest of the pipeline is unchanged.
+
+    Requires OUTSCRAPER_API_KEY in .env / Render environment variables.
+    Costs $3 / 1,000 reviews (~$0.003 per review).
+    Falls back gracefully to an empty list on any error.
+
+    Outscraper place ID format: the plain Google place_id string works directly.
+    """
+    from app.core.config import settings
+
+    api_key = getattr(settings, "OUTSCRAPER_API_KEY", None) or ""
+    if not api_key:
+        logger.warning("OUTSCRAPER_API_KEY not set — skipping Outscraper review fetch")
+        return []
+
+    try:
+        params = {
+            "query": google_place_id,
+            "reviewsLimit": limit,
+            "language": "en",
+            "async": False,
+        }
+        headers = {"X-API-KEY": api_key}
+        response = requests.get(
+            OUTSCRAPER_REVIEWS_URL,
+            params=params,
+            headers=headers,
+            timeout=60,
+        )
+        response.raise_for_status()
+        payload = response.json()
+
+        # Outscraper wraps results in data[0].reviews
+        data = payload.get("data") or []
+        if not data:
+            return []
+
+        place_data = data[0] if isinstance(data, list) else data
+        raw_reviews = place_data.get("reviews_data") or []
+
+        # Normalise to the shape map_google_review() expects
+        normalised = []
+        for r in raw_reviews:
+            review_id = r.get("review_id") or r.get("review_link") or ""
+            if not review_id:
+                continue
+            normalised.append({
+                "name": f"outscraper/{google_place_id}/reviews/{review_id}",
+                "rating": r.get("review_rating") or 0,
+                "text": {"text": r.get("review_text") or "", "languageCode": "en"},
+                "originalText": {"text": r.get("review_text") or "", "languageCode": "en"},
+                "publishTime": r.get("review_datetime_utc") or None,
+                "relativePublishTimeDescription": r.get("review_timestamp") or None,
+                "authorAttribution": {
+                    "displayName": r.get("author_title") or "",
+                    "uri": r.get("author_url") or "",
+                    "photoUri": r.get("author_image") or "",
+                },
+                "ownerResponse": {
+                    "text": r.get("owner_answer") or None,
+                    "publishTime": r.get("owner_answer_timestamp_datetime_utc") or None,
+                },
+                "_source": "outscraper",
+            })
+
+        logger.info(
+            "Outscraper fetched %d reviews for place_id=%s (limit=%d)",
+            len(normalised), google_place_id, limit,
+        )
+        return normalised
+
+    except Exception as exc:
+        logger.warning("Outscraper review fetch failed for %s: %s", google_place_id, exc)
+        return []
+
+
 def upsert_google_reviews(records: List[GoogleReviewRecord]) -> int:
     if not records:
         return 0
@@ -346,16 +435,29 @@ def ingest_google_reviews_for_competitor(
     language_code: str = "en",
 ) -> Dict[str, Any]:
     """
-    Minimal idempotent ingestion entrypoint for Step 1.
+    Idempotent review ingestion for a single competitor.
+
+    Source priority:
+      1. Outscraper (up to 100 reviews) -- if OUTSCRAPER_API_KEY is set
+      2. Google Places API (up to 5 reviews) -- always available fallback
 
     Returns counts only.
     """
     try:
-        raw_reviews = fetch_google_place_reviews(
-            google_place_id=google_place_id,
-            api_key=api_key,
-            language_code=language_code,
-        )
+        # Prefer Outscraper for rich review text (100 reviews vs Google's 5)
+        raw_reviews = fetch_outscraper_reviews(google_place_id)
+
+        # Fall back to Google Places if Outscraper is not configured or returned nothing
+        if not raw_reviews:
+            logger.info(
+                "Outscraper returned 0 reviews for %s -- falling back to Google Places",
+                google_place_id,
+            )
+            raw_reviews = fetch_google_place_reviews(
+                google_place_id=google_place_id,
+                api_key=api_key,
+                language_code=language_code,
+            )
 
         records = [
             map_google_review(
@@ -405,5 +507,7 @@ def ingest_google_reviews_for_competitor(
             "business_id": business_id,
             "competitor_id": competitor_id,
             "google_place_id": google_place_id,
+            "fetched": 0,
+            "upserted": 0,
             "error": str(exc),
         }
