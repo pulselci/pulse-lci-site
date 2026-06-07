@@ -1113,7 +1113,6 @@
 
       {% set friction = sections.get("customer_friction_signals") or {} %}
       {% if friction %}
-        {% if sections.get("is_free_preview") == true %}<div class="premium-section-wrapper"><div class="premium-blur-content">{% endif %}
         <div class="summary-card">
           <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: #3a5278; padding-bottom: 10px; margin-bottom: 14px; border-bottom: 1px solid #dce6f5;">{{ friction.get("title") or "Customer Friction Signals" }}</div>
 
@@ -1171,16 +1170,6 @@
             <div style="margin-top: 8px; font-size: 11px; color: #98a2b3;">Based on negative-review phrase matching across {{ friction_themes | length }} complaint themes.</div>
           {% endif %}
         </div>
-        {% if sections.get("is_free_preview") == true %}
-          </div>{# end premium-blur-content #}
-          <div class="premium-overlay">
-            <div class="premium-lock-icon">🔒</div>
-            <div class="premium-overlay-title">Friction Signals — Subscribers Only</div>
-            <div class="premium-overlay-body">Detailed complaint theme breakdown across your market is available with a Pulse LCI subscription.</div>
-            <a class="premium-cta-btn" href="https://pulselci.com/#pricing">Unlock Full Report</a>
-          </div>
-        </div>{# end premium-section-wrapper #}
-        {% endif %}
       {% endif %}
 
       {% if sov_rows %}
