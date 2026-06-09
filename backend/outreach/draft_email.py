@@ -102,7 +102,8 @@ I built a tool called Pulse LCI that tracks this automatically and shows exactly
 If you'd like, reply with the names of up to 3 of your closest competitors and I'll pull a free report for you. Or request one at pulselci.com/#free-report.
 
 Craig White
-Pulse LCI
+Founder & CEO, Pulse LCI
+craig@pulselci.com | pulselci.com
 """
 
     return subject, body
