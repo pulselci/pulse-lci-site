@@ -77,7 +77,7 @@ def run_cold_email_followups() -> dict:
                 market = f"{p['city']}, {p['state']}" if p.get('city') else "your market"
                 body = (
                     f"Hi,\n\n"
-                    f"Just making sure this didn't get buried — happy to run the free "
+                    f"Just making sure this didn't get buried. Happy to run the free "
                     f"competitive snapshot for {p['business_name']} whenever it works for you.\n\n"
                     f"It shows exactly where you stand against local competitors in {market} "
                     f"and what to focus on this month. Free report lands in your inbox in less than 5 minutes.\n\n"
@@ -116,7 +116,7 @@ def run_cold_email_followups() -> dict:
                 )
                 body = (
                     f"Hi,\n\n"
-                    f"One thing I noticed while tracking {market} — {competitor_line}\n\n"
+                    f"One thing I noticed while tracking {market}: {competitor_line}\n\n"
                     f"If you'd like to see where {p['business_name']} stands in comparison, "
                     f"I can pull a free competitive snapshot this week. No strings attached.\n\n"
                     f"{FREE_REPORT_URL}\n\n"
@@ -224,12 +224,12 @@ def _report_followup_day5(name: str, business: str) -> tuple[str, str]:
     subject = f"Did you get a chance to review your report, {name}?"
     body = (
         f"Hi {name},\n\n"
-        f"Just checking in — did you get a chance to look at the competitive report "
+        f"Just checking in. Did you get a chance to look at the competitive report "
         f"for {business}?\n\n"
-        f"The friction signals section in particular is worth a look — it shows exactly "
+        f"The friction signals section is worth a look. It shows exactly "
         f"which complaint themes are showing up across your market and how your competitors "
         f"compare.\n\n"
-        f"Happy to answer any questions — just reply to this email.\n\n"
+        f"Happy to answer any questions. Just reply to this email.\n\n"
         f"Craig\n"
         f"Pulse LCI"
     )
@@ -241,7 +241,7 @@ def _report_followup_day12(name: str, business: str) -> tuple[str, str]:
     body = (
         f"Hi {name},\n\n"
         f"Wanted to follow up on the competitive report for {business}.\n\n"
-        f"Your market moves every month — review counts shift, complaint patterns change, "
+        f"Your market moves every month. Review counts shift, complaint patterns change, "
         f"and competitors gain or lose ground. The snapshot you received shows where things "
         f"stood when we ran it, but that picture is already getting older.\n\n"
         f"For $99/month, you'd get this updated every month — tracking exactly how your "
@@ -260,7 +260,7 @@ def _report_followup_day21(name: str, business: str) -> tuple[str, str]:
         f"Hi {name},\n\n"
         f"Last follow-up on this.\n\n"
         f"The report we sent gives you a baseline. What it can't show you is what's "
-        f"changing — which competitor is quietly gaining ground, which complaint themes "
+        f"changing: which competitor is quietly gaining ground, which complaint themes "
         f"are rising in your market, and whether the gap is widening or closing.\n\n"
         f"That's what the monthly subscription does. $99/month. Report delivered to your "
         f"inbox the first of every month. Cancel anytime.\n\n"
