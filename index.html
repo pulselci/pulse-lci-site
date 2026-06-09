@@ -59,26 +59,23 @@
     .brand {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 6px;
       font-weight: 800;
       letter-spacing: -0.02em;
       color: var(--navy);
-      font-size: 20px;
+      font-size: 22px;
+      text-decoration: none;
     }
 
     .brand-mark {
       width: 36px;
       height: 36px;
-      flex-shrink: 0;
       border-radius: 12px;
       background: linear-gradient(135deg, var(--blue), #38bdf8);
       color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
+      display: grid;
+      place-items: center;
       font-weight: 900;
-      line-height: 1;
       box-shadow: 0 12px 24px rgba(37, 99, 235, 0.22);
     }
 
@@ -444,27 +441,23 @@
     }
 
     .screenshot-frame {
-      position: relative;
-      display: block;
-      width: 100%;
       height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       background: #f8fafc;
       border-radius: 18px;
       overflow: hidden;
       margin-bottom: 22px;
       cursor: zoom-in;
-      text-decoration: none;
     }
 
     .screenshot-frame img {
-      display: block;
       width: 100%;
       height: 100%;
-      object-fit: cover;
-      object-position: center 8%;
+      object-fit: contain;
       border-radius: 14px;
       transition: transform 0.18s ease;
-      pointer-events: none;
     }
 
     .screenshot-frame:hover img {
@@ -567,6 +560,20 @@
       margin-bottom: 7px;
     }
 
+    label.required::after {
+      content: " *";
+      color: #e53e3e;
+    }
+
+    .field-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .field-row .field-group {
+      flex: 1;
+    }
+
     input,
     textarea {
       width: 100%;
@@ -605,6 +612,43 @@
       color: #166534;
       font-weight: 800;
       font-size: 14px;
+    }
+
+    .inbox-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 40px 32px;
+      text-align: center;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    .inbox-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .inbox-card h3 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 12px;
+    }
+
+    .inbox-card p {
+      font-size: 14px;
+      color: #475569;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+
+    .inbox-note {
+      font-size: 12px !important;
+      color: #94a3b8 !important;
+    }
+
+    .inbox-note a {
+      color: #3b82f6;
+      text-decoration: none;
     }
 
     .form-error {
@@ -655,48 +699,14 @@
         transform: none;
       }
     }
-
-    .screenshot-frame {
-      position: relative;
-      cursor: zoom-in;
-    }
-    .screenshot-frame img {
-      pointer-events: none;
-    }
-    .zoom-hint {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      transition: opacity 0.2s;
-      pointer-events: none;
-    }
-    .screenshot-frame:hover .zoom-hint {
-      opacity: 1;
-    }
-    .zoom-hint-inner {
-      background: rgba(255,255,255,0.93);
-      border: 1px solid #bfdbfe;
-      border-radius: 999px;
-      padding: 8px 16px;
-      font-size: 13px;
-      font-weight: 800;
-      color: #1d4ed8;
-      box-shadow: 0 4px 16px rgba(15,23,42,0.12);
-    }
-    .screenshot-frame:hover img {
-      filter: brightness(0.88);
-    }
   </style>
 </head>
 <body>
   <nav class="nav">
     <div class="container nav-inner">
       <a href="#top" class="brand">
-        <span class="brand-mark">P</span>
-        <span>Pulse LCI</span>
+        <img src="pulse-lci-mark.png" alt="Pulse LCI" style="height:32px; width:auto; vertical-align:middle;">
+        <span style="line-height:1;">Pulse LCI</span>
       </a>
       <div class="nav-links">
         <a href="#what-you-get">What you get</a>
@@ -705,6 +715,20 @@
       </div>
     </div>
   </nav>
+
+  <form name="free-report-request" method="POST" data-netlify="true" hidden>
+    <input type="hidden" name="form-name" value="free-report-request" />
+    <input name="name" />
+    <input name="email" />
+    <input name="business" />
+    <input name="location" />
+    <input name="city" />
+    <input name="state" />
+    <input name="competitor1" />
+    <input name="competitor2" />
+    <input name="competitor3" />
+  </form>
+
 
   <main id="top">
     <header class="hero">
@@ -827,27 +851,24 @@
         <div class="product-strip">
 
           <div class="screenshot-card">
-            <div class="screenshot-frame" data-img="executive-summary.png" onclick="document.getElementById('lbImg').src='executive-summary.png';document.getElementById('lbOverlay').style.display='flex';document.body.style.overflow='hidden';" style="cursor:zoom-in;">
+            <div class="screenshot-frame" data-full="executive-summary.png">
               <img src="executive-summary.png" alt="Pulse LCI executive summary screenshot" />
-              <div class="zoom-hint"><div class="zoom-hint-inner">&#128269; Click to expand</div></div>
             </div>
             <h3>Executive summary</h3>
             <p>See exactly where you stand—and what it will take to stay ahead.</p>
           </div>
 
           <div class="screenshot-card">
-            <div class="screenshot-frame" data-img="review-chart.png" onclick="document.getElementById('lbImg').src='review-chart.png';document.getElementById('lbOverlay').style.display='flex';document.body.style.overflow='hidden';" style="cursor:zoom-in;">
+            <div class="screenshot-frame" data-full="review-chart.png">
               <img src="review-chart.png" alt="Pulse LCI review pulse screenshot" />
-              <div class="zoom-hint"><div class="zoom-hint-inner">&#128269; Click to expand</div></div>
             </div>
             <h3>Review pulse</h3>
             <p>Track review momentum across you and nearby competitors.</p>
           </div>
 
           <div class="screenshot-card">
-            <div class="screenshot-frame" data-img="Execution-plan.png" onclick="document.getElementById('lbImg').src='Execution-plan.png';document.getElementById('lbOverlay').style.display='flex';document.body.style.overflow='hidden';" style="cursor:zoom-in;">
+            <div class="screenshot-frame" data-full="Execution-plan.png">
               <img src="Execution-plan.png" alt="Pulse LCI execution plan screenshot" />
-              <div class="zoom-hint"><div class="zoom-hint-inner">&#128269; Click to expand</div></div>
             </div>
             <h3>Execution plan</h3>
             <p>Get clear, prioritized actions your team can execute this month.</p>
@@ -881,51 +902,38 @@
           <p>No complicated contracts. No bloated software. Just a useful report every month.</p>
         </div>
         <div class="pricing-grid">
-          <div class="price-card">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+          <div class="price-card" style="cursor:pointer;display:flex;flex-direction:column;" onclick="openSubscribeModal('starter')">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;min-height:28px;">
               <div class="price-tag" style="margin-bottom:0;">Starter</div>
             </div>
             <h3>For focused local tracking</h3>
             <div class="price">$99<span>/month</span></div>
-            <ul>
+            <ul style="flex:1;">
               <li>Track up to 3 competitors</li>
               <li>Monthly competitor report</li>
               <li>Review and visibility insights</li>
               <li>Action plan included</li>
             </ul>
+            <div style="margin-top:20px;">
+              <button class="btn-subscribe" onclick="event.stopPropagation();openSubscribeModal('starter')">Get Started →</button>
+            </div>
           </div>
-          <div class="price-card featured">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+          <div class="price-card featured" style="cursor:pointer;display:flex;flex-direction:column;" onclick="openSubscribeModal('growth')">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;min-height:28px;">
               <div class="price-tag" style="margin-bottom:0;">Growth</div>
-              <div style="display:inline-flex;padding:5px 10px;border-radius:999px;background:#2563eb;color:white;font-weight:850;font-size:12px;letter-spacing:0.03em;">Most Popular</div>
+              <div style="display:inline-flex;padding:5px 10px;border-radius:999px;background:#2563eb;color:white;font-weight:800;font-size:12px;letter-spacing:0.03em;">Most Popular</div>
             </div>
             <h3>For more competitive markets</h3>
             <div class="price">$179<span>/month</span></div>
-            <ul>
+            <ul style="flex:1;">
               <li>Track up to 10 competitors</li>
               <li>Monthly competitor report</li>
               <li>Expanded market context</li>
               <li>Action plan included</li>
             </ul>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section style="background:white;padding:52px 0;">
-      <div class="container">
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;text-align:center;">
-          <div style="padding:24px;">
-            <div style="font-size:36px;font-weight:900;color:#10233f;letter-spacing:-0.04em;">Monthly</div>
-            <div style="color:#475569;font-size:15px;margin-top:4px;">Fresh data every month — no stale reports</div>
-          </div>
-          <div style="padding:24px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
-            <div style="font-size:36px;font-weight:900;color:#10233f;letter-spacing:-0.04em;">No login</div>
-            <div style="color:#475569;font-size:15px;margin-top:4px;">Your report shows up in your inbox. That's it.</div>
-          </div>
-          <div style="padding:24px;">
-            <div style="font-size:36px;font-weight:900;color:#10233f;letter-spacing:-0.04em;">Cancel anytime</div>
-            <div style="color:#475569;font-size:15px;margin-top:4px;">No annual contracts. No setup fees.</div>
+            <div style="margin-top:20px;">
+              <button class="btn-subscribe btn-subscribe-featured" onclick="event.stopPropagation();openSubscribeModal('growth')">Get Started →</button>
+            </div>
           </div>
         </div>
       </div>
@@ -939,58 +947,58 @@
           <p><strong style="color:white;">Good fit if:</strong> customers compare you against nearby competitors before calling, booking, or requesting a quote.</p>
         </div>
 
-        <div id="formWrap">
-          <form name="free-report-request" method="POST" action="https://pulse-lci-api.onrender.com/intake/prospect">
-            
+        <form name="free-report-request" method="POST" data-netlify="true" netlify-honeypot="bot-field" id="reportForm">
+          <input type="hidden" name="form-name" value="free-report-request" />
+          <input type="hidden" name="subject" value="New Pulse LCI Free Report Request" />
 
-            <p class="hidden">
-              <label>Do not fill this out: <input name="bot-field" /></label>
-            </p>
+          <p class="hidden">
+            <label>Do not fill this out: <input name="bot-field" /></label>
+          </p>
 
-            <label for="fname">Your name <span style="color:#ef4444;">*</span></label>
-            <input id="fname" name="name" type="text" placeholder="Your name" required />
+          <label class="required" for="name">Your name</label>
+          <input id="name" name="name" type="text" placeholder="Your name" required />
 
-            <label for="femail">Work email <span style="color:#ef4444;">*</span></label>
-            <input id="femail" name="email" type="email" placeholder="you@business.com" required />
+          <label class="required" for="email">Work email</label>
+          <input id="email" name="email" type="email" placeholder="you@business.com" required />
 
-            <label for="fphone">Phone number <span style="color:#ef4444;">*</span></label>
-            <input id="fphone" name="phone" type="tel" placeholder="(555) 555-5555" required />
+          <label class="required" for="business">Business name</label>
+          <input id="business" name="business" type="text" placeholder="Example Dental" required />
 
-            <label for="fbusiness">Business name <span style="color:#ef4444;">*</span></label>
-            <input id="fbusiness" name="business" type="text" placeholder="Example Dental" required />
-
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-              <div>
-                <label for="city">City <span style="color:#ef4444;">*</span></label>
-                <input id="city" name="city" type="text" placeholder="Cincinnati" required />
-              </div>
-              <div>
-                <label for="state">State <span style="color:#ef4444;">*</span></label>
-                <input id="state" name="state" type="text" placeholder="OH" required />
-              </div>
+          <div class="field-row">
+            <div class="field-group">
+              <label class="required" for="city">City</label>
+              <input id="city" name="city" type="text" placeholder="Cincinnati" required />
             </div>
-            <input type="hidden" name="location" id="location" />
-
-            <label for="competitor1">Competitor 1 <span style="color:#ef4444;">*</span></label>
-            <input id="competitor1" name="competitor1" type="text" placeholder="Competitor business name" required />
-
-            <label for="competitor2">Competitor 2 <span style="font-weight:400;opacity:0.65;">(optional)</span></label>
-            <input id="competitor2" name="competitor2" type="text" placeholder="Competitor business name" />
-
-            <label for="competitor3">Competitor 3 <span style="font-weight:400;opacity:0.65;">(optional)</span></label>
-            <input id="competitor3" name="competitor3" type="text" placeholder="Competitor business name" />
-
-            <button id="submitBtn" type="submit" style="display:block;width:100%;background:#2563eb;color:#fff;border:none;border-radius:999px;padding:15px 20px;font-size:16px;font-weight:700;cursor:pointer;margin-top:4px;">Request my free report</button>
-
-            <div id="errorMessage" style="display:none;margin-top:12px;padding:12px 16px;border-radius:12px;background:#fef2f2;border:1px solid #fecaca;color:#dc2626;font-size:14px;">
-              Something went wrong. Please try again or email reports@pulselci.com.
+            <div class="field-group">
+              <label class="required" for="state">State</label>
+              <input id="state" name="state" type="text" placeholder="OH" required />
             </div>
+          </div>
 
-            <div class="form-note">Submit your business and up to 3 local competitors. We’ll follow up with your sample report.</div>
-          </form>
+          <label class="required" for="competitor1">Competitor 1</label>
+          <input id="competitor1" name="competitor1" type="text" placeholder="Competitor business name" required />
 
+          <label for="competitor2">Competitor 2</label>
+          <input id="competitor2" name="competitor2" type="text" placeholder="Competitor business name" />
+
+          <label for="competitor3">Competitor 3</label>
+          <input id="competitor3" name="competitor3" type="text" placeholder="Competitor business name" />
+
+          <button class="button" type="submit" style="width:100%;" id="submitBtn">Request my free report</button>
+
+          <div id="errorMessage" class="form-error" role="alert">
+            Something went wrong. Please try again or email reports@pulselci.com.
+          </div>
+
+          <div class="form-note">Submit your business and 3 local competitors. We’ll review the market and follow up with a sample report.</div>
+        </form>
+
+        <div id="inboxCard" class="inbox-card" role="status" aria-live="polite" style="display:none;">
+          <div class="inbox-icon">📬</div>
+          <h3>Check your inbox.</h3>
+          <p>Your free competitive intelligence report is being built right now. It covers your market position, how you compare to your competitors, and the top opportunities we found. Expect it within a few minutes.</p>
+          <p class="inbox-note">Didn’t get it? Check your spam folder or email <a href="mailto:reports@pulselci.com">reports@pulselci.com</a></p>
         </div>
-
       </div>
     </section>
   </main>
@@ -998,25 +1006,273 @@
   <footer>
     <div class="container footer-inner">
       <div>© 2026 Pulse LCI. Local Competitor Intelligence.</div>
-      <div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
-        <a href="mailto:reports@pulselci.com" style="color:#64748b;">reports@pulselci.com</a>
-        <a href="/privacy.html" style="color:#64748b;">Privacy Policy</a>
-        <a href="/terms.html" style="color:#64748b;">Terms of Service</a>
-      </div>
+      <div>reports@pulselci.com</div>
     </div>
   </footer>
 
-  <!-- Lightbox overlay — click anywhere to close -->
-  <div id="lbOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(2,6,23,0.92);align-items:center;justify-content:center;padding:40px 20px;cursor:zoom-out;" onclick="this.style.display='none';document.getElementById('lbImg').src='';document.body.style.overflow='';">
-    <img id="lbImg" src="" alt="" style="max-width:100%;max-height:90vh;border-radius:12px;box-shadow:0 28px 90px rgba(0,0,0,0.5);cursor:default;display:block;" onclick="event.stopPropagation();" />
-    <button style="position:fixed;top:18px;right:24px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;font-size:28px;width:44px;height:44px;border-radius:50%;cursor:pointer;" onclick="event.stopPropagation();document.getElementById('lbOverlay').style.display='none';document.getElementById('lbImg').src='';document.body.style.overflow='';">&times;</button>
+  <!-- Subscribe Modal -->
+  <style>
+    .btn-subscribe {
+      width: 100%; padding: 12px 20px; background: #10233f; color: white;
+      border: none; border-radius: 8px; font-size: 14px; font-weight: 700;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .btn-subscribe:hover { background: #1e3a5f; }
+    .btn-subscribe-featured { background: #2563eb; }
+    .btn-subscribe-featured:hover { background: #1d4ed8; }
+    #subscribeModal { display: none; position: fixed; inset: 0; background: rgba(10,20,40,0.6);
+      z-index: 99999; align-items: center; justify-content: center; padding: 16px; }
+    #subscribeModal.open { display: flex; }
+  </style>
+
+  <div id="subscribeModal">
+    <div style="background:white;border-radius:16px;width:100%;max-width:520px;padding:36px 32px;position:relative;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.2);">
+      <button onclick="closeSubscribeModal()" style="position:absolute;top:16px;right:18px;background:none;border:none;font-size:22px;cursor:pointer;color:#64748b;line-height:1;">✕</button>
+      <div id="modalPlanBadge" style="display:inline-flex;padding:4px 14px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:14px;"></div>
+      <h2 style="font-size:22px;font-weight:800;color:#10233f;margin:0 0 4px;">Start your subscription</h2>
+      <p style="color:#64748b;font-size:14px;margin:0 0 24px;">You'll be redirected to Stripe to complete payment securely.</p>
+
+      <form id="subscribeForm" onsubmit="handleSubscribe(event)">
+        <input type="hidden" id="selectedPlan" name="plan" value="starter" />
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Your name <span style="color:#e53e3e;">*</span></label>
+            <input name="contact_name" type="text" required placeholder="Jane Smith" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;" />
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Phone <span style="color:#e53e3e;">*</span></label>
+            <input name="contact_phone" type="tel" required placeholder="(555) 555-5555" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;" />
+          </div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Email address <span style="color:#e53e3e;">*</span></label>
+          <input name="contact_email" type="email" required placeholder="you@business.com" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;" />
+        </div>
+
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">Business name <span style="color:#e53e3e;">*</span></label>
+            <input name="business_name" type="text" required placeholder="Acme Dental" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;" />
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">City <span style="color:#e53e3e;">*</span></label>
+            <input name="city" type="text" required placeholder="Cincinnati" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;" />
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:4px;">State <span style="color:#e53e3e;">*</span></label>
+            <input name="state" type="text" required placeholder="OH" maxlength="2" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;text-transform:uppercase;" />
+          </div>
+        </div>
+
+        <div style="margin-bottom:20px;">
+          <label style="font-size:12px;font-weight:600;color:#374151;display:block;margin-bottom:6px;">Competitor 1 <span style="color:#e53e3e;">*</span></label>
+          <input name="competitor_1" type="text" required placeholder="e.g. Blue Ash Dental" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;margin-bottom:8px;" />
+          <div id="competitorExtraFields"></div>
+          <div id="addCompetitorWrap">
+            <button type="button" onclick="addCompetitorField()" style="background:none;border:1px dashed #d1d5db;border-radius:8px;width:100%;padding:9px;font-size:13px;color:#6b7280;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+              <span style="font-size:16px;line-height:1;">+</span> Add another competitor
+            </button>
+          </div>
+        </div>
+
+        <div id="subscribeError" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:13px;color:#b91c1c;margin-bottom:14px;"></div>
+
+        <button type="submit" id="subscribeSubmitBtn" style="width:100%;padding:14px;background:#2563eb;color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;">
+          Continue to Payment →
+        </button>
+        <p style="text-align:center;font-size:12px;color:#9ca3af;margin:10px 0 0;">Secured by Stripe · Cancel anytime</p>
+      </form>
+    </div>
   </div>
 
   <script>
+    const PULSE_API = 'https://pulse-lci-api.onrender.com';
+    var _maxCompetitors = 3;
+    var _competitorCount = 1;
+
+    function addCompetitorField() {
+      _competitorCount++;
+      const wrap = document.getElementById('competitorExtraFields');
+      const div = document.createElement('div');
+      div.innerHTML = `<input name="competitor_${_competitorCount}" type="text" placeholder="Competitor ${_competitorCount}" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;margin-bottom:8px;" />`;
+      wrap.appendChild(div);
+      if (_competitorCount >= _maxCompetitors) {
+        document.getElementById('addCompetitorWrap').style.display = 'none';
+      }
+    }
+
+    function resetCompetitorFields() {
+      _competitorCount = 1;
+      document.getElementById('competitorExtraFields').innerHTML = '';
+    }
+
+    function openSubscribeModal(plan) {
+      document.getElementById('selectedPlan').value = plan;
+      const badge = document.getElementById('modalPlanBadge');
+      if (plan === 'growth') {
+        badge.textContent = 'Growth — $179/month';
+        badge.style.cssText += ';background:#dbeafe;color:#1d4ed8;';
+        _maxCompetitors = 10;
+      } else {
+        badge.textContent = 'Starter — $99/month';
+        badge.style.cssText += ';background:#f1f5f9;color:#334155;';
+        _maxCompetitors = 3;
+      }
+      document.getElementById('subscribeError').style.display = 'none';
+      document.getElementById('subscribeForm').reset();
+      document.getElementById('selectedPlan').value = plan;
+      resetCompetitorFields();
+      document.getElementById('addCompetitorWrap').style.display = 'block';
+      document.getElementById('subscribeModal').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeSubscribeModal() {
+      document.getElementById('subscribeModal').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    document.getElementById('subscribeModal').addEventListener('click', function(e) {
+      if (e.target === this) closeSubscribeModal();
+    });
+
     document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') { document.getElementById('lbOverlay').style.display='none'; document.getElementById('lbImg').src=''; document.body.style.overflow=''; }
+      if (e.key === 'Escape') closeSubscribeModal();
+    });
+
+    async function handleSubscribe(e) {
+      e.preventDefault();
+      const form = e.target;
+      const btn = document.getElementById('subscribeSubmitBtn');
+      const errBox = document.getElementById('subscribeError');
+      errBox.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Setting up your account…';
+
+      const competitors = [];
+      for (let i = 1; i <= _competitorCount; i++) {
+        const el = form['competitor_' + i];
+        if (el && el.value.trim()) competitors.push(el.value.trim());
+      }
+
+      const payload = {
+        plan: document.getElementById('selectedPlan').value,
+        contact_name: form.contact_name.value.trim(),
+        contact_email: form.contact_email.value.trim(),
+        contact_phone: form.contact_phone.value.trim(),
+        business_name: form.business_name.value.trim(),
+        city: form.city.value.trim(),
+        state: form.state.value.trim().toUpperCase(),
+        competitor_names: competitors,
+      };
+
+      try {
+        const res = await fetch(`${PULSE_API}/billing/subscribe`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Something went wrong. Please try again.');
+        if (data.checkout_url) {
+          window.location.href = data.checkout_url;
+        } else {
+          throw new Error('No checkout URL returned. Please contact support.');
+        }
+      } catch (err) {
+        errBox.textContent = err.message;
+        errBox.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Continue to Payment →';
+      }
+    }
+  </script>
+
+  <!-- Premium screenshot modal -->
+  <div id="imageModal" class="modal" aria-hidden="true">
+    <button class="modal-close" type="button" aria-label="Close image">&times;</button>
+    <img id="modalImg" class="modal-content" alt="Expanded Pulse LCI report screenshot" />
+  </div>
+
+  <script>
+    const modal = document.getElementById("imageModal");
+    const modalImg = document.getElementById("modalImg");
+    const closeBtn = document.querySelector(".modal-close");
+
+    document.querySelectorAll(".screenshot-frame").forEach(frame => {
+      frame.addEventListener("click", () => {
+        modalImg.src = frame.getAttribute("data-full");
+        modal.classList.add("is-open");
+        modal.setAttribute("aria-hidden", "false");
+      });
+    });
+
+    function closeModal() {
+      modal.classList.remove("is-open");
+      modal.setAttribute("aria-hidden", "true");
+      modalImg.src = "";
+    }
+
+    closeBtn.addEventListener("click", closeModal);
+
+    modal.addEventListener("click", (event) => {
+      if (event.target === modal) {
+        closeModal();
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && modal.classList.contains("is-open")) {
+        closeModal();
+      }
+    });
+
+    const reportForm = document.getElementById("reportForm");
+    const submitBtn = document.getElementById("submitBtn");
+    const inboxCard = document.getElementById("inboxCard");
+    const errorMessage = document.getElementById("errorMessage");
+
+    function encodeFormData(formData) {
+      return new URLSearchParams(formData).toString();
+    }
+
+    reportForm.addEventListener("submit", function(event) {
+      event.preventDefault();
+
+      errorMessage.style.display = "none";
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Submitting...";
+
+      const formData = new FormData(reportForm);
+
+      fetch("https://pulse-lci-api.onrender.com/intake/prospect", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: encodeFormData(formData)
+      })
+      .then((response) => {
+        if (!response.ok) throw new Error("Submission failed");
+        return response.json();
+      })
+      .then((data) => {
+        if (data.ok) {
+          reportForm.style.display = "none";
+          inboxCard.style.display = "block";
+        } else {
+          throw new Error("Unexpected response");
+        }
+      })
+      .catch(() => {
+        errorMessage.style.display = "block";
+      })
+      .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Request my free report";
+      });
     });
   </script>
 
 </body>
-</html>                                                                                                                                                                                                                                                                                                                                                                                
+</html>
