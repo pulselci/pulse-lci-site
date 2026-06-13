@@ -189,5 +189,19 @@
 
 <footer>© 2026 Pulse LCI. Local Competitor Intelligence.</footer>
 
+
+<script>
+  (function() {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id');
+    if (sessionId) {
+      // Fire-and-forget: wake Render and trigger subscriber activation
+      fetch('https://pulse-lci-api.onrender.com/billing/activate?session_id=' + encodeURIComponent(sessionId), {
+        method: 'GET',
+        mode: 'cors',
+      }).catch(function() {});
+    }
+  })();
+</script>
 </body>
 </html>
