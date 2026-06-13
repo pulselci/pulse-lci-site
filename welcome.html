@@ -39,49 +39,48 @@
       font-weight: 800; letter-spacing: -0.02em;
       color: var(--navy); font-size: 22px; text-decoration: none;
     }
-    .container {
+    .wrap {
       width: min(640px, calc(100% - 40px));
       margin: 0 auto;
-      padding: 80px 0 60px;
+      padding: 64px 0 80px;
+    }
+    .hero {
       text-align: center;
+      margin-bottom: 36px;
     }
     .check-circle {
-      width: 72px; height: 72px; border-radius: 50%;
-      background: linear-gradient(135deg, #16a34a, #22c55e);
+      width: 68px; height: 68px; border-radius: 50%;
+      background: #dcfce7;
       display: flex; align-items: center; justify-content: center;
-      margin: 0 auto 28px;
-      box-shadow: 0 12px 32px rgba(22,163,74,0.28);
+      margin: 0 auto 24px;
     }
-    .check-circle svg { width: 36px; height: 36px; }
+    .check-circle svg { width: 32px; height: 32px; }
     h1 {
-      font-size: clamp(30px, 5vw, 44px);
+      font-size: clamp(28px, 5vw, 40px);
       font-weight: 900;
       letter-spacing: -0.04em;
       color: var(--navy);
-      margin: 0 0 14px;
+      margin: 0 0 10px;
     }
     .subtitle {
-      font-size: 18px;
+      font-size: 17px;
       color: var(--muted);
-      margin: 0 0 40px;
+      margin: 0;
     }
-    .steps {
+    .card {
       background: white;
       border: 1px solid var(--line);
       border-radius: 20px;
-      padding: 28px 32px;
-      text-align: left;
-      box-shadow: 0 8px 32px rgba(15,23,42,0.07);
-      margin-bottom: 32px;
+      padding: 24px 28px;
+      margin-bottom: 14px;
     }
-    .steps h2 {
-      font-size: 16px;
+    .card-label {
+      font-size: 11px;
       font-weight: 800;
-      color: var(--navy);
-      margin: 0 0 20px;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
-      font-size: 13px;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      margin: 0 0 18px;
     }
     .step {
       display: flex;
@@ -90,40 +89,77 @@
       padding: 14px 0;
       border-bottom: 1px solid var(--line);
     }
-    .step:last-child { border-bottom: none; }
+    .step:last-child { border-bottom: none; padding-bottom: 0; }
+    .step:first-child { padding-top: 0; }
     .step-num {
       width: 28px; height: 28px; border-radius: 50%;
-      background: var(--sky); color: var(--blue);
+      background: #eff6ff; color: var(--blue);
       font-weight: 800; font-size: 13px;
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0; margin-top: 1px;
     }
-    .step-text strong {
-      display: block;
-      color: var(--ink);
-      font-weight: 700;
-      margin-bottom: 2px;
+    .step strong {
+      display: block; font-weight: 700;
+      color: var(--ink); margin-bottom: 3px; font-size: 15px;
     }
-    .step-text span { color: var(--muted); font-size: 14px; }
+    .step span { color: var(--muted); font-size: 14px; line-height: 1.55; }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .info-card {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 20px 22px;
+    }
+    .info-card-head {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 10px;
+    }
+    .info-icon {
+      width: 32px; height: 32px; border-radius: 10px;
+      background: #f1f5f9;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .info-card strong { font-size: 14px; font-weight: 700; color: var(--ink); }
+    .info-card p { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.6; }
+    .info-card a { color: var(--blue); text-decoration: none; }
+    .contact-bar {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .contact-bar-left { display: flex; align-items: center; gap: 14px; }
+    .contact-bar strong { display: block; font-size: 14px; font-weight: 700; color: var(--ink); }
+    .contact-bar span { font-size: 13px; color: var(--muted); }
     .cta-link {
       display: inline-flex; align-items: center; gap: 8px;
-      padding: 14px 28px;
+      padding: 13px 26px;
       background: var(--blue);
       color: white;
       border-radius: 999px;
       font-weight: 750;
       text-decoration: none;
-      box-shadow: 0 10px 28px rgba(37,99,235,0.24);
-      transition: 0.18s ease;
       font-size: 15px;
+      transition: background 0.15s;
     }
-    .cta-link:hover { background: var(--blue-dark); transform: translateY(-1px); }
-    .support-note {
-      margin-top: 24px;
-      font-size: 14px;
+    .cta-link:hover { background: var(--blue-dark); }
+    .footer-note {
+      text-align: center;
+      font-size: 13px;
       color: var(--muted);
+      margin-top: 28px;
     }
-    .support-note a { color: var(--blue); text-decoration: none; }
     footer {
       padding: 28px 0;
       color: #64748b;
@@ -131,6 +167,10 @@
       background: white;
       border-top: 1px solid var(--line);
       text-align: center;
+    }
+    @media (max-width: 560px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      .contact-bar { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>
@@ -145,63 +185,119 @@
   </div>
 </nav>
 
-<div class="container">
-  <div class="check-circle">
-    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="20 6 9 17 4 12"/>
-    </svg>
+<div class="wrap">
+
+  <div class="hero">
+    <div class="check-circle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <h1>You're all set.</h1>
+    <p class="subtitle">Your Pulse LCI subscription is active. Here's everything you need to know.</p>
   </div>
 
-  <h1>You're all set.</h1>
-  <p class="subtitle">Your Pulse LCI subscription is active. Here's what happens next.</p>
-
-  <div class="steps">
-    <h2>What to expect</h2>
+  <div class="card">
+    <p class="card-label">What to expect</p>
     <div class="step">
       <div class="step-num">1</div>
-      <div class="step-text">
+      <div>
         <strong>Check your email</strong>
-        <span>Your first competitive intelligence report is being built and will arrive in your inbox shortly.</span>
+        <span>Your first competitive intelligence report is being built now and will arrive in your inbox shortly.</span>
       </div>
     </div>
     <div class="step">
       <div class="step-num">2</div>
-      <div class="step-text">
-        <strong>Review your market position</strong>
-        <span>The report shows where you stand vs. competitors, who's gaining ground, and where the biggest opportunities are.</span>
+      <div>
+        <strong>Monthly reports on the 1st</strong>
+        <span>A fresh competitive intelligence report lands in your inbox on the 1st of every month — no action needed on your part.</span>
       </div>
     </div>
     <div class="step">
       <div class="step-num">3</div>
-      <div class="step-text">
-        <strong>Monthly updates, automatically</strong>
-        <span>You'll receive a fresh report every month so you always know what's changing in your market.</span>
+      <div>
+        <strong>Review your market position</strong>
+        <span>Each report shows where you stand vs. competitors, who's gaining ground, and your highest-impact actions for that month.</span>
       </div>
     </div>
   </div>
 
-  <a href="/" class="cta-link">← Back to Pulse LCI</a>
+  <div class="grid-2">
 
-  <p class="support-note">
-    Questions? Email us at <a href="mailto:reports@pulselci.com">reports@pulselci.com</a>
-  </p>
+    <div class="info-card">
+      <div class="info-card-head">
+        <div class="info-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0"/><polyline points="12 8 12 12 14 14"/></svg>
+        </div>
+        <strong>Cancellations</strong>
+      </div>
+      <p>Cancel anytime — no contracts, no penalties. Email <a href="mailto:reports@pulselci.com">reports@pulselci.com</a> and we'll handle it the same day before your next billing date.</p>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-head">
+        <div class="info-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </div>
+        <strong>Upgrade to Growth</strong>
+      </div>
+      <p>Growth tracks up to 10 competitors (vs. 3 on Starter) and adds mid-month market alerts. Email us to upgrade — we'll prorate the difference.</p>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-head">
+        <div class="info-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <strong>Adding recipients</strong>
+      </div>
+      <p>Want reports sent to a teammate or partner? Email us and we'll add additional recipients to your account at no extra charge.</p>
+    </div>
+
+    <div class="info-card">
+      <div class="info-card-head">
+        <div class="info-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </div>
+        <strong>Changing competitors</strong>
+      </div>
+      <p>Business landscape shifting? Email us to add, remove, or swap the competitors we track for you. Changes take effect the following month's report.</p>
+    </div>
+
+  </div>
+
+  <div class="contact-bar">
+    <div class="contact-bar-left">
+      <div class="info-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      </div>
+      <div>
+        <strong>Questions? We're here.</strong>
+        <span>reports@pulselci.com &nbsp;·&nbsp; replies within 1 business day</span>
+      </div>
+    </div>
+    <a href="mailto:reports@pulselci.com" class="cta-link">Email us</a>
+  </div>
+
+  <div style="text-align:center;">
+    <a href="/" class="cta-link" style="background:#10233f;">← Back to Pulse LCI</a>
+  </div>
+
 </div>
 
 <footer>© 2026 Pulse LCI. Local Competitor Intelligence.</footer>
 
-
 <script>
   (function() {
-    const params = new URLSearchParams(window.location.search);
-    const sessionId = params.get('session_id');
+    var params = new URLSearchParams(window.location.search);
+    var sessionId = params.get('session_id');
     if (sessionId) {
-      // Fire-and-forget: wake Render and trigger subscriber activation
       fetch('https://pulse-lci-api.onrender.com/billing/activate?session_id=' + encodeURIComponent(sessionId), {
-        method: 'GET',
-        mode: 'cors',
+        method: 'GET', mode: 'cors'
       }).catch(function() {});
     }
   })();
 </script>
+
 </body>
 </html>
